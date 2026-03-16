@@ -1,0 +1,51 @@
+{
+	"name": "testing-ui",
+	"version": "0.0.1",
+	"description": "Widget Object Model - framework and runner agnostic UI testing abstractions",
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./adapters/rtl": {
+			"types": "./dist/adapters/rtl.d.ts",
+			"import": "./dist/adapters/rtl.js"
+		},
+		"./adapters/playwright": {
+			"types": "./dist/adapters/playwright.d.ts",
+			"import": "./dist/adapters/playwright.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "tsc --project tsconfig.build.json",
+		"test": "echo 'no tests yet'"
+	},
+	"keywords": [
+		"testing",
+		"widget-object-model",
+		"page-object-model",
+		"react-testing-library",
+		"playwright",
+		"ui-testing"
+	],
+	"license": "MIT",
+	"peerDependencies": {
+		"@testing-library/react": ">=14",
+		"@playwright/test": ">=1"
+	},
+	"peerDependenciesMeta": {
+		"@testing-library/react": {
+			"optional": true
+		},
+		"@playwright/test": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"typescript": "^5.7.0"
+	}
+}

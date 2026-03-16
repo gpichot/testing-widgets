@@ -1,0 +1,9 @@
+{
+	"packages": {
+		"packages/testing-ui": {
+			"release-type": "node",
+			"component": "testing-ui",
+			"changelog-path": "CHANGELOG.md"
+		}
+	}
+}
