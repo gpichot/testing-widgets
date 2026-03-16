@@ -22,7 +22,7 @@
 	"files": ["dist"],
 	"scripts": {
 		"build": "tsc --project tsconfig.build.json",
-		"test": "echo 'no tests yet'"
+		"test": "vitest run"
 	},
 	"keywords": [
 		"testing",
@@ -46,6 +46,8 @@
 		}
 	},
 	"devDependencies": {
+		"jsdom": "^26.0.0",
+		"vitest": "^3.0.0",
 		"typescript": "^5.7.0"
 	}
 }
