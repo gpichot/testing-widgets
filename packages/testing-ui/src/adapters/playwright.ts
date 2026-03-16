@@ -1,56 +1,33 @@
 /**
- * Playwright adapter for the Widget Object Model.
+ * Playwright adapter.
  *
- * This adapter bridges the Locator/Screen interfaces to Playwright's Page/Locator.
- * Usage:
- *
+ * @example
  * ```ts
- * import { createScreen } from "testing-ui/adapters/playwright";
+ * import { playwright } from "testing-ui/adapters/playwright";
  * import { test } from "@playwright/test";
  *
  * test("example", async ({ page }) => {
- *   const screen = createScreen(page);
- *   // use widgets with screen...
+ *   const locator = playwright(page);
+ *   const { elements, actions } = myWidget.from(locator);
  * });
  * ```
  */
 
-import type {
-	CreateScreen,
-	GetByRoleOptions,
-	Locator,
-	Screen,
-} from "../types.js";
+import type { ByRoleOptions, Locator } from "../types.js";
 
-/**
- * Minimal subset of Playwright's Page that we depend on.
- * This avoids requiring @playwright/test as a compile-time dependency.
- */
-interface PlaywrightPage {
-	getByRole(
-		role: string,
-		options?: { name?: string | RegExp },
-	): PlaywrightLocator;
-	getByLabel(text: string | RegExp): PlaywrightLocator;
-	getByPlaceholder(text: string | RegExp): PlaywrightLocator;
-	getByText(text: string | RegExp): PlaywrightLocator;
-	getByTestId(testId: string): PlaywrightLocator;
-}
-
-interface PlaywrightLocator {
-	getByRole(
-		role: string,
-		options?: { name?: string | RegExp },
-	): PlaywrightLocator;
-	getByLabel(text: string | RegExp): PlaywrightLocator;
-	getByPlaceholder(text: string | RegExp): PlaywrightLocator;
-	getByText(text: string | RegExp): PlaywrightLocator;
-	getByTestId(testId: string): PlaywrightLocator;
+/** Minimal Playwright locator/page surface we depend on (no compile-time dep). */
+interface PwLocatable {
+	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
+	getByLabel(text: string | RegExp): PwLocatable;
+	getByPlaceholder(text: string | RegExp): PwLocatable;
+	getByText(text: string | RegExp): PwLocatable;
+	getByTestId(testId: string): PwLocatable;
 	click(): Promise<void>;
 	fill(value: string): Promise<void>;
 	check(): Promise<void>;
 	uncheck(): Promise<void>;
 	selectOption(value: string | string[]): Promise<void>;
+	clear(): Promise<void>;
 	textContent(): Promise<string | null>;
 	getAttribute(name: string): Promise<string | null>;
 	inputValue(): Promise<string>;
@@ -59,78 +36,70 @@ interface PlaywrightLocator {
 	isChecked(): Promise<boolean>;
 }
 
-export const createScreen: CreateScreen<PlaywrightPage> = (
-	page: PlaywrightPage,
-): Screen => {
-	return new PlaywrightLocatorAdapter(page);
-};
+export function playwright(page: PwLocatable): Locator {
+	return new PwAdapter(page);
+}
 
-class PlaywrightLocatorAdapter implements Locator {
-	constructor(private pw: PlaywrightPage | PlaywrightLocator) {}
+class PwAdapter implements Locator {
+	constructor(private pw: PwLocatable) {}
 
-	getByRole(role: string, options?: GetByRoleOptions): Locator {
-		return new PlaywrightLocatorAdapter(
+	getByRole(role: string, options?: ByRoleOptions): Locator {
+		return new PwAdapter(
 			this.pw.getByRole(role, options ? { name: options.name } : undefined),
 		);
 	}
 
 	getByLabel(text: string | RegExp): Locator {
-		return new PlaywrightLocatorAdapter(this.pw.getByLabel(text));
+		return new PwAdapter(this.pw.getByLabel(text));
 	}
 
 	getByPlaceholder(text: string | RegExp): Locator {
-		return new PlaywrightLocatorAdapter(this.pw.getByPlaceholder(text));
+		return new PwAdapter(this.pw.getByPlaceholder(text));
 	}
 
 	getByText(text: string | RegExp): Locator {
-		return new PlaywrightLocatorAdapter(this.pw.getByText(text));
+		return new PwAdapter(this.pw.getByText(text));
 	}
 
 	getByTestId(testId: string): Locator {
-		return new PlaywrightLocatorAdapter(this.pw.getByTestId(testId));
+		return new PwAdapter(this.pw.getByTestId(testId));
 	}
 
-	async click(): Promise<void> {
-		await (this.pw as PlaywrightLocator).click();
+	click() {
+		return this.pw.click();
+	}
+	fill(value: string) {
+		return this.pw.fill(value);
+	}
+	check() {
+		return this.pw.check();
+	}
+	uncheck() {
+		return this.pw.uncheck();
+	}
+	selectOption(value: string | string[]) {
+		return this.pw.selectOption(value);
+	}
+	clear() {
+		return this.pw.clear();
 	}
 
-	async fill(value: string): Promise<void> {
-		await (this.pw as PlaywrightLocator).fill(value);
+	textContent() {
+		return this.pw.textContent();
 	}
-
-	async check(): Promise<void> {
-		await (this.pw as PlaywrightLocator).check();
+	getAttribute(name: string) {
+		return this.pw.getAttribute(name);
 	}
-
-	async uncheck(): Promise<void> {
-		await (this.pw as PlaywrightLocator).uncheck();
+	inputValue() {
+		return this.pw.inputValue();
 	}
-
-	async selectOption(value: string | string[]): Promise<void> {
-		await (this.pw as PlaywrightLocator).selectOption(value);
+	isVisible() {
+		return this.pw.isVisible();
 	}
-
-	async textContent(): Promise<string | null> {
-		return (this.pw as PlaywrightLocator).textContent();
+	isEnabled() {
+		return this.pw.isEnabled();
 	}
-
-	async getAttribute(name: string): Promise<string | null> {
-		return (this.pw as PlaywrightLocator).getAttribute(name);
-	}
-
-	async inputValue(): Promise<string> {
-		return (this.pw as PlaywrightLocator).inputValue();
-	}
-
-	async isVisible(): Promise<boolean> {
-		return (this.pw as PlaywrightLocator).isVisible();
-	}
-
-	async isEnabled(): Promise<boolean> {
-		return (this.pw as PlaywrightLocator).isEnabled();
-	}
-
-	async isChecked(): Promise<boolean> {
-		return (this.pw as PlaywrightLocator).isChecked();
+	isChecked() {
+		return this.pw.isChecked();
 	}
 }

@@ -1,48 +1,44 @@
-import type { Locator, Screen } from "./types.js";
+import type { LocatorWith } from "./enhanced.js";
+import { enhance } from "./enhanced.js";
+import type { Locator } from "./types.js";
 
 /**
- * Base class for Widget Object Models.
+ * Defines a reusable, runner-agnostic widget.
  *
- * A Widget represents a reusable UI component abstraction.
- * It encapsulates how to locate elements and interact with them,
- * without coupling to a specific test runner or UI framework.
+ * The factory receives a {@link LocatorWith} — an enhanced locator with
+ * role shortcuts like `button()`, `textbox()`, `heading()` and short
+ * aliases like `byRole()`, `byLabel()`, `byText()`.
  *
  * @example
  * ```ts
- * class LoginForm extends Widget {
- *   get email() {
- *     return this.locator.getByLabel("Email");
- *   }
- *   get password() {
- *     return this.locator.getByLabel("Password");
- *   }
- *   get submitButton() {
- *     return this.locator.getByRole("button", { name: "Sign in" });
- *   }
+ * const loginForm = widget((l) => ({
+ *   elements: {
+ *     email: () => l.byLabel("Email"),
+ *     password: () => l.byLabel("Password"),
+ *     submit: () => l.button({ name: "Sign in" }),
+ *   },
+ *   actions: {
+ *     login: async (email: string, password: string) => {
+ *       await l.byLabel("Email").fill(email);
+ *       await l.byLabel("Password").fill(password);
+ *       await l.button({ name: "Sign in" }).click();
+ *     },
+ *   },
+ * }));
  *
- *   async login(email: string, password: string) {
- *     await this.email.fill(email);
- *     await this.password.fill(password);
- *     await this.submitButton.click();
- *   }
- * }
+ * // Connect to RTL
+ * const { elements, actions } = loginForm.from(rtl(container, user));
  *
- * // Usage with any adapter:
- * const screen = createScreen(context);
- * const loginForm = new LoginForm(screen);
- * await loginForm.login("user@example.com", "password");
+ * // Or Playwright
+ * const { elements, actions } = loginForm.from(playwright(page));
  * ```
  */
-export class Widget {
-	constructor(protected readonly locator: Locator) {}
-
-	/**
-	 * Create a widget scoped to a specific locator within a screen.
-	 */
-	static from<T extends Widget>(
-		ctor: new (locator: Locator) => T,
-		screenOrLocator: Screen | Locator,
-	): T {
-		return new ctor(screenOrLocator);
-	}
+export function widget<T>(factory: (locator: LocatorWith) => T) {
+	return {
+		from(locator: Locator): T {
+			return factory(enhance(locator));
+		},
+	};
 }
+
+export type WidgetDef<T> = ReturnType<typeof widget<T>>;
