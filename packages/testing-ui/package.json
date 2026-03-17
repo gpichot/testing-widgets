@@ -1,6 +1,6 @@
 {
 	"name": "testing-ui",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Widget Object Model - framework and runner agnostic UI testing abstractions",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -19,7 +19,9 @@
 			"import": "./dist/adapters/playwright.js"
 		}
 	},
-	"files": ["dist"],
+	"files": [
+		"dist"
+	],
 	"scripts": {
 		"build": "tsc --project tsconfig.build.json",
 		"test": "vitest run"
