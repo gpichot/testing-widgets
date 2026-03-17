@@ -21,6 +21,11 @@ function mockLocator(overrides: Partial<Locator> = {}): Locator {
 		isVisible: vi.fn(async () => true),
 		isEnabled: vi.fn(async () => true),
 		isChecked: vi.fn(async () => false),
+		get: vi.fn(() => null),
+		getAll: vi.fn(() => []),
+		query: vi.fn(() => null),
+		queryAll: vi.fn(() => []),
+		find: vi.fn(async () => null),
 		...overrides,
 	};
 }

@@ -10,6 +10,18 @@ export interface Locator {
 	getByText(text: string | RegExp): Locator;
 	getByTestId(testId: string): Locator;
 
+	// --- Resolution ---
+	/** Resolve to the native element/locator. Throws if not found. */
+	get(): unknown;
+	/** Resolve all matching native elements/locators. Throws if none found. */
+	getAll(): unknown[];
+	/** Resolve to the native element/locator, or null if not found. */
+	query(): unknown | null;
+	/** Resolve all matching native elements/locators (empty array if none). */
+	queryAll(): unknown[];
+	/** Async resolution — waits for the element to appear. */
+	find(): Promise<unknown>;
+
 	// --- Actions ---
 	click(): Promise<void>;
 	fill(value: string): Promise<void>;

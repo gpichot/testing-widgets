@@ -34,6 +34,7 @@ interface PwLocatable {
 	isVisible(): Promise<boolean>;
 	isEnabled(): Promise<boolean>;
 	isChecked(): Promise<boolean>;
+	all(): Promise<PwLocatable[]>;
 }
 
 export function playwright(page: PwLocatable): Locator {
@@ -63,6 +64,31 @@ class PwAdapter implements Locator {
 
 	getByTestId(testId: string): Locator {
 		return new PwAdapter(this.pw.getByTestId(testId));
+	}
+
+	get(): PwLocatable {
+		return this.pw;
+	}
+
+	getAll(): PwLocatable[] {
+		throw new Error(
+			"Playwright getAll() is async — use find() or await locator.get().all() instead",
+		);
+	}
+
+	query(): PwLocatable {
+		// Playwright locators are always lazy — query() returns the locator itself
+		return this.pw;
+	}
+
+	queryAll(): PwLocatable[] {
+		throw new Error(
+			"Playwright queryAll() is async — use await locator.get().all() instead",
+		);
+	}
+
+	async find(): Promise<PwLocatable> {
+		return this.pw;
 	}
 
 	click() {

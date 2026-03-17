@@ -46,7 +46,12 @@ class RtlLocator implements Locator {
 	constructor(
 		private resolve: () => HTMLElement,
 		private user?: UserEventLike,
-	) {}
+		query?: Query,
+		parentResolve?: () => HTMLElement,
+	) {
+		this.query_ = query;
+		this.parentResolve = parentResolve;
+	}
 
 	// --- Queries (lazy) ---------------------------------------------------
 
@@ -68,6 +73,36 @@ class RtlLocator implements Locator {
 
 	getByTestId(id: string): Locator {
 		return this.lazy({ kind: "testid", id });
+	}
+
+	// --- Resolution -------------------------------------------------------
+
+	get(): HTMLElement {
+		return this.resolve();
+	}
+
+	getAll(): HTMLElement[] {
+		return this.resolveAll();
+	}
+
+	query(): HTMLElement | null {
+		try {
+			return this.resolve();
+		} catch {
+			return null;
+		}
+	}
+
+	queryAll(): HTMLElement[] {
+		try {
+			return this.resolveAll();
+		} catch {
+			return [];
+		}
+	}
+
+	async find(): Promise<HTMLElement> {
+		return this.resolve();
 	}
 
 	// --- Actions ----------------------------------------------------------
@@ -147,9 +182,24 @@ class RtlLocator implements Locator {
 
 	// --- Internal ---------------------------------------------------------
 
-	private lazy(query: Query): Locator {
-		return new RtlLocator(() => runQuery(this.resolve(), query), this.user);
+	private lazy(query: Query): RtlLocator {
+		return new RtlLocator(
+			() => runQuery(this.resolve(), query),
+			this.user,
+			query,
+			this.resolve,
+		);
 	}
+
+	private resolveAll(): HTMLElement[] {
+		if (!this.query_ || !this.parentResolve) {
+			return [this.resolve()];
+		}
+		return runQueryAll(this.parentResolve(), this.query_);
+	}
+
+	private query_?: Query;
+	private parentResolve?: () => HTMLElement;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,93 +213,124 @@ function matches(actual: string, expected: string | RegExp): boolean {
 }
 
 function runQuery(root: HTMLElement, q: Query): HTMLElement {
+	const results = runQueryAll(root, q);
+	if (results.length === 0) {
+		throwNotFound(q);
+	}
+	return results[0];
+}
+
+function runQueryAll(root: HTMLElement, q: Query): HTMLElement[] {
 	switch (q.kind) {
 		case "role":
-			return findByRole(root, q.role, q.options);
+			return findAllByRole(root, q.role, q.options);
 		case "label":
-			return findByLabel(root, q.text);
+			return findAllByLabel(root, q.text);
 		case "placeholder":
-			return findByAttr(root, "placeholder", q.text);
+			return findAllByAttr(root, "placeholder", q.text);
 		case "text":
-			return findByText(root, q.text);
+			return findAllByText(root, q.text);
 		case "testid":
-			return findByAttr(root, "data-testid", q.id);
+			return findAllByAttr(root, "data-testid", q.id);
 	}
 }
 
-function findByRole(
+function throwNotFound(q: Query): never {
+	switch (q.kind) {
+		case "role":
+			throw new Error(
+				`Unable to find element with role "${q.role}"${q.options?.name ? ` and name "${q.options.name}"` : ""}`,
+			);
+		case "label":
+			throw new Error(`Unable to find element with label "${q.text}"`);
+		case "text":
+			throw new Error(`Unable to find element with text "${q.text}"`);
+		case "placeholder":
+			throw new Error(`Unable to find element with placeholder "${q.text}"`);
+		case "testid":
+			throw new Error(`Unable to find element with data-testid "${q.id}"`);
+	}
+}
+
+// Map common implicit roles to selectors
+const implicitRoles: Record<string, string> = {
+	button: 'button, [role="button"], input[type="button"], input[type="submit"]',
+	textbox: 'input:not([type]), input[type="text"], textarea, [role="textbox"]',
+	checkbox: 'input[type="checkbox"], [role="checkbox"]',
+	radio: 'input[type="radio"], [role="radio"]',
+	link: 'a[href], [role="link"]',
+	heading: "h1, h2, h3, h4, h5, h6, [role=heading]",
+	list: 'ul, ol, [role="list"]',
+	listitem: 'li, [role="listitem"]',
+	combobox: 'select, [role="combobox"]',
+	dialog: 'dialog, [role="dialog"]',
+	img: 'img[alt], [role="img"]',
+};
+
+function findAllByRole(
 	root: HTMLElement,
 	role: string,
 	options?: ByRoleOptions,
-): HTMLElement {
-	// Map common implicit roles to selectors
-	const implicit: Record<string, string> = {
-		button:
-			'button, [role="button"], input[type="button"], input[type="submit"]',
-		textbox:
-			'input:not([type]), input[type="text"], textarea, [role="textbox"]',
-		checkbox: 'input[type="checkbox"], [role="checkbox"]',
-		radio: 'input[type="radio"], [role="radio"]',
-		link: 'a[href], [role="link"]',
-		heading: "h1, h2, h3, h4, h5, h6, [role=heading]",
-		list: 'ul, ol, [role="list"]',
-		listitem: 'li, [role="listitem"]',
-		combobox: 'select, [role="combobox"]',
-		dialog: 'dialog, [role="dialog"]',
-		img: 'img[alt], [role="img"]',
-	};
-	const selector = implicit[role] ?? `[role="${role}"]`;
-
+): HTMLElement[] {
+	const selector = implicitRoles[role] ?? `[role="${role}"]`;
+	const results: HTMLElement[] = [];
 	for (const el of Array.from(root.querySelectorAll<HTMLElement>(selector))) {
 		if (options?.name !== undefined) {
 			const accessible =
 				el.getAttribute("aria-label") ?? el.textContent?.trim() ?? "";
 			if (!matches(accessible, options.name)) continue;
 		}
-		return el;
+		results.push(el);
 	}
-	throw new Error(
-		`Unable to find element with role "${role}"${options?.name ? ` and name "${options.name}"` : ""}`,
-	);
+	return results;
 }
 
-function findByLabel(root: HTMLElement, text: string | RegExp): HTMLElement {
+function findAllByLabel(
+	root: HTMLElement,
+	text: string | RegExp,
+): HTMLElement[] {
+	const results: HTMLElement[] = [];
 	for (const label of Array.from(root.querySelectorAll("label"))) {
 		if (!matches(label.textContent?.trim() ?? "", text)) continue;
 		const forId = label.getAttribute("for");
 		if (forId) {
 			const el = root.querySelector<HTMLElement>(`#${forId}`);
-			if (el) return el;
+			if (el) results.push(el);
 		}
 		const input = label.querySelector<HTMLElement>("input, select, textarea");
-		if (input) return input;
+		if (input) results.push(input);
 	}
 	for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
 		const aria = el.getAttribute("aria-label");
-		if (aria && matches(aria, text)) return el;
+		if (aria && matches(aria, text) && !results.includes(el)) results.push(el);
 	}
-	throw new Error(`Unable to find element with label "${text}"`);
+	return results;
 }
 
-function findByText(root: HTMLElement, text: string | RegExp): HTMLElement {
+function findAllByText(
+	root: HTMLElement,
+	text: string | RegExp,
+): HTMLElement[] {
+	const results: HTMLElement[] = [];
 	for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
 		if (el.children.length === 0 && matches(el.textContent?.trim() ?? "", text))
-			return el;
+			results.push(el);
 	}
-	throw new Error(`Unable to find element with text "${text}"`);
+	return results;
 }
 
-function findByAttr(
+function findAllByAttr(
 	root: HTMLElement,
 	attr: string,
 	value: string | RegExp,
-): HTMLElement {
+): HTMLElement[] {
+	const results: HTMLElement[] = [];
 	for (const el of Array.from(
 		root.querySelectorAll<HTMLElement>(`[${attr}]`),
 	)) {
-		if (matches(el.getAttribute(attr) ?? "", value)) return el;
+		if (matches(el.getAttribute(attr) ?? "", value)) results.push(el);
 	}
-	throw new Error(`Unable to find element with ${attr} "${value}"`);
+	return results;
 }
 
 function setNativeValue(el: HTMLInputElement, value: string): void {

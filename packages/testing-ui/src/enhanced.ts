@@ -59,6 +59,22 @@ class LocatorProxy implements LocatorWith {
 		return new LocatorProxy(this.base.getByTestId(testId));
 	}
 
+	get() {
+		return this.base.get();
+	}
+	getAll() {
+		return this.base.getAll();
+	}
+	query() {
+		return this.base.query();
+	}
+	queryAll() {
+		return this.base.queryAll();
+	}
+	find() {
+		return this.base.find();
+	}
+
 	click() {
 		return this.base.click();
 	}
