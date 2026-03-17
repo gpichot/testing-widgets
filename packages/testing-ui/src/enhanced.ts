@@ -1,4 +1,5 @@
-import type { ByRoleOptions, Locator } from "./types.js";
+import { asCallable } from "./callable.js";
+import type { ByRoleOptions, Locator, LocatorMethods } from "./types.js";
 
 /**
  * Extended locator with role shortcuts and concise aliases.
@@ -35,28 +36,32 @@ export interface LocatorWith extends Locator {
  * Wrap a base Locator with shortcut methods.
  */
 export function enhance(base: Locator): LocatorWith {
-	return new LocatorProxy(base);
+	return asCallable(new LocatorProxy(base)) as LocatorWith;
 }
 
-class LocatorProxy implements LocatorWith {
+class LocatorProxy implements LocatorMethods {
 	constructor(private base: Locator) {}
 
 	// --- Base Locator (delegate & wrap) ------------------------------------
 
+	private wrap(locator: Locator): LocatorWith {
+		return asCallable(new LocatorProxy(locator)) as LocatorWith;
+	}
+
 	getByRole(role: string, options?: ByRoleOptions): LocatorWith {
-		return new LocatorProxy(this.base.getByRole(role, options));
+		return this.wrap(this.base.getByRole(role, options));
 	}
 	getByLabel(text: string | RegExp): LocatorWith {
-		return new LocatorProxy(this.base.getByLabel(text));
+		return this.wrap(this.base.getByLabel(text));
 	}
 	getByPlaceholder(text: string | RegExp): LocatorWith {
-		return new LocatorProxy(this.base.getByPlaceholder(text));
+		return this.wrap(this.base.getByPlaceholder(text));
 	}
 	getByText(text: string | RegExp): LocatorWith {
-		return new LocatorProxy(this.base.getByText(text));
+		return this.wrap(this.base.getByText(text));
 	}
 	getByTestId(testId: string): LocatorWith {
-		return new LocatorProxy(this.base.getByTestId(testId));
+		return this.wrap(this.base.getByTestId(testId));
 	}
 
 	get() {

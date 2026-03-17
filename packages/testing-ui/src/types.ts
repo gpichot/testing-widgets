@@ -1,8 +1,8 @@
 /**
- * Core abstraction for querying and interacting with UI elements,
- * independent of the test runner (RTL, Playwright) or UI framework (React, Vue).
+ * Methods available on a locator — implemented by adapter classes.
+ * Use {@link Locator} for the public-facing callable type.
  */
-export interface Locator {
+export interface LocatorMethods {
 	// --- Queries ---
 	getByRole(role: string, options?: ByRoleOptions): Locator;
 	getByLabel(text: string | RegExp): Locator;
@@ -37,6 +37,22 @@ export interface Locator {
 	isVisible(): Promise<boolean>;
 	isEnabled(): Promise<boolean>;
 	isChecked(): Promise<boolean>;
+}
+
+/**
+ * A callable locator. Calling it directly is shorthand for `.get()`.
+ *
+ * @example
+ * ```ts
+ * const heading = locator.getByRole("heading");
+ * heading()       // → get() — returns the native element
+ * heading.get()   // same as above
+ * heading.query() // returns null instead of throwing
+ * ```
+ */
+export interface Locator extends LocatorMethods {
+	/** Shorthand for get(). */
+	(): unknown;
 }
 
 export interface ByRoleOptions {

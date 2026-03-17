@@ -13,7 +13,8 @@
  * ```
  */
 
-import type { ByRoleOptions, Locator } from "../types.js";
+import { asCallable } from "../callable.js";
+import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
 
 /** Minimal Playwright locator/page surface we depend on (no compile-time dep). */
 interface PwLocatable {
@@ -38,32 +39,34 @@ interface PwLocatable {
 }
 
 export function playwright(page: PwLocatable): Locator {
-	return new PwAdapter(page);
+	return asCallable(new PwAdapter(page));
 }
 
-class PwAdapter implements Locator {
+class PwAdapter implements LocatorMethods {
 	constructor(private pw: PwLocatable) {}
 
 	getByRole(role: string, options?: ByRoleOptions): Locator {
-		return new PwAdapter(
-			this.pw.getByRole(role, options ? { name: options.name } : undefined),
+		return asCallable(
+			new PwAdapter(
+				this.pw.getByRole(role, options ? { name: options.name } : undefined),
+			),
 		);
 	}
 
 	getByLabel(text: string | RegExp): Locator {
-		return new PwAdapter(this.pw.getByLabel(text));
+		return asCallable(new PwAdapter(this.pw.getByLabel(text)));
 	}
 
 	getByPlaceholder(text: string | RegExp): Locator {
-		return new PwAdapter(this.pw.getByPlaceholder(text));
+		return asCallable(new PwAdapter(this.pw.getByPlaceholder(text)));
 	}
 
 	getByText(text: string | RegExp): Locator {
-		return new PwAdapter(this.pw.getByText(text));
+		return asCallable(new PwAdapter(this.pw.getByText(text)));
 	}
 
 	getByTestId(testId: string): Locator {
-		return new PwAdapter(this.pw.getByTestId(testId));
+		return asCallable(new PwAdapter(this.pw.getByTestId(testId)));
 	}
 
 	get(): PwLocatable {

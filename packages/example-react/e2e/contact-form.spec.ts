@@ -9,20 +9,20 @@ test.describe("ContactForm (Playwright)", () => {
 
 	test("renders the form heading", async ({ page }) => {
 		const { elements } = contactForm.from(playwright(page));
-		await expect(elements.heading().get()).toHaveText("Contact us");
+		await expect(elements.heading()).toHaveText("Contact us");
 	});
 
 	test("renders the form fields", async ({ page }) => {
 		const { elements } = contactForm.from(playwright(page));
-		await expect(elements.nameInput().get()).toBeVisible();
-		await expect(elements.messageInput().get()).toBeVisible();
-		await expect(elements.submitButton().get()).toBeVisible();
+		await expect(elements.nameInput()).toBeVisible();
+		await expect(elements.messageInput()).toBeVisible();
+		await expect(elements.submitButton()).toBeVisible();
 	});
 
 	test("fills in the name field", async ({ page }) => {
 		const { elements, actions } = contactForm.from(playwright(page));
 		await actions.fillName("Alice");
-		await expect(elements.nameInput().get()).toHaveValue("Alice");
+		await expect(elements.nameInput()).toHaveValue("Alice");
 	});
 
 	test("submits the form and shows confirmation", async ({ page }) => {
@@ -33,7 +33,7 @@ test.describe("ContactForm (Playwright)", () => {
 		await expect(elements.thankYou("Alice").get()).toHaveText(
 			"Thank you, Alice!",
 		);
-		await expect(elements.confirmation().get()).toHaveText(
+		await expect(elements.confirmation()).toHaveText(
 			"Your message has been sent.",
 		);
 	});

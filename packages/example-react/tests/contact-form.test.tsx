@@ -14,20 +14,20 @@ function setup() {
 describe("ContactForm (vitest + RTL)", () => {
 	it("renders the form heading", () => {
 		const { elements } = setup();
-		expect(elements.heading().get()).toHaveTextContent("Contact us");
+		expect(elements.heading()).toHaveTextContent("Contact us");
 	});
 
 	it("renders the form fields", () => {
 		const { elements } = setup();
-		expect(elements.nameInput().get()).toBeVisible();
-		expect(elements.messageInput().get()).toBeVisible();
-		expect(elements.submitButton().get()).toBeVisible();
+		expect(elements.nameInput()).toBeVisible();
+		expect(elements.messageInput()).toBeVisible();
+		expect(elements.submitButton()).toBeVisible();
 	});
 
 	it("fills in the name field", async () => {
 		const { elements, actions } = setup();
 		await actions.fillName("Alice");
-		expect(elements.nameInput().get()).toHaveValue("Alice");
+		expect(elements.nameInput()).toHaveValue("Alice");
 	});
 
 	it("submits the form and shows confirmation", async () => {
@@ -38,7 +38,7 @@ describe("ContactForm (vitest + RTL)", () => {
 		expect(elements.thankYou("Alice").get()).toHaveTextContent(
 			"Thank you, Alice!",
 		);
-		expect(elements.confirmation().get()).toHaveTextContent(
+		expect(elements.confirmation()).toHaveTextContent(
 			"Your message has been sent.",
 		);
 	});

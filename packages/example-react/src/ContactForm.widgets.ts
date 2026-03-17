@@ -9,12 +9,12 @@ import { widget } from "testing-ui";
  */
 export const contactForm = widget((l) => ({
 	elements: {
-		heading: () => l.heading({ name: "Contact us" }),
-		nameInput: () => l.byLabel("Name"),
-		messageInput: () => l.byLabel("Message"),
-		submitButton: () => l.button({ name: "Send" }),
+		heading: l.heading({ name: "Contact us" }),
+		nameInput: l.byLabel("Name"),
+		messageInput: l.byLabel("Message"),
+		submitButton: l.button({ name: "Send" }),
 		thankYou: (name: string) => l.heading({ name: `Thank you, ${name}!` }),
-		confirmation: () => l.byText("Your message has been sent."),
+		confirmation: l.byText("Your message has been sent."),
 	},
 	actions: {
 		fillName: (name: string) => l.byLabel("Name").fill(name),

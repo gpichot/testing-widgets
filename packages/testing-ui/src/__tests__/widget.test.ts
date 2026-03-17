@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import { asCallable } from "../callable.js";
 import type { Locator } from "../types.js";
 import { widget } from "../widget.js";
 
 function mockLocator(overrides: Partial<Locator> = {}): Locator {
-	return {
+	const loc: Locator = asCallable({
 		getByRole: vi.fn(() => mockLocator()),
 		getByLabel: vi.fn(() => mockLocator()),
 		getByPlaceholder: vi.fn(() => mockLocator()),
@@ -27,14 +28,15 @@ function mockLocator(overrides: Partial<Locator> = {}): Locator {
 		queryAll: vi.fn(() => []),
 		find: vi.fn(async () => null),
 		...overrides,
-	};
+	} as Locator);
+	return loc;
 }
 
 describe("widget()", () => {
 	it("calls the factory with an enhanced locator and returns the result", () => {
 		const w = widget((l) => ({
 			elements: {
-				submit: () => l.button({ name: "Go" }),
+				submit: l.button({ name: "Go" }),
 			},
 		}));
 
@@ -48,22 +50,16 @@ describe("widget()", () => {
 	it("exposes short aliases (byRole, byLabel, byText, etc.)", () => {
 		const w = widget((l) => ({
 			elements: {
-				a: () => l.byRole("link", { name: "Home" }),
-				b: () => l.byLabel("Email"),
-				c: () => l.byText("Hello"),
-				d: () => l.byPlaceholder("Search"),
-				e: () => l.byTestId("foo"),
+				a: l.byRole("link", { name: "Home" }),
+				b: l.byLabel("Email"),
+				c: l.byText("Hello"),
+				d: l.byPlaceholder("Search"),
+				e: l.byTestId("foo"),
 			},
 		}));
 
 		const loc = mockLocator();
-		const { elements } = w.from(loc);
-
-		elements.a();
-		elements.b();
-		elements.c();
-		elements.d();
-		elements.e();
+		w.from(loc);
 
 		expect(loc.getByRole).toHaveBeenCalledWith("link", { name: "Home" });
 		expect(loc.getByLabel).toHaveBeenCalledWith("Email");
@@ -93,7 +89,7 @@ describe("widget()", () => {
 
 	it("supports composing widgets", () => {
 		const inner = widget((l) => ({
-			elements: { title: () => l.heading({ name: "Section" }) },
+			elements: { title: l.heading({ name: "Section" }) },
 		}));
 
 		const outer = widget((l) => ({

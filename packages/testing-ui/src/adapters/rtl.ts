@@ -13,7 +13,8 @@
  * ```
  */
 
-import type { ByRoleOptions, Locator } from "../types.js";
+import { asCallable } from "../callable.js";
+import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
 
 /** Minimal userEvent interface — avoids compile-time dep on @testing-library/user-event */
 interface UserEventLike {
@@ -30,7 +31,7 @@ export function rtl(
 	container: HTMLElement = document.body,
 	user?: UserEventLike,
 ): Locator {
-	return new RtlLocator(() => container, user);
+	return asCallable(new RtlLocator(() => container, user));
 }
 
 // ---------------------------------------------------------------------------
@@ -42,7 +43,7 @@ type Query =
 	| { kind: "text"; text: string | RegExp }
 	| { kind: "testid"; id: string };
 
-class RtlLocator implements Locator {
+class RtlLocator implements LocatorMethods {
 	constructor(
 		private resolve: () => HTMLElement,
 		private user?: UserEventLike,
@@ -182,12 +183,14 @@ class RtlLocator implements Locator {
 
 	// --- Internal ---------------------------------------------------------
 
-	private lazy(query: Query): RtlLocator {
-		return new RtlLocator(
-			() => runQuery(this.resolve(), query),
-			this.user,
-			query,
-			this.resolve,
+	private lazy(query: Query): Locator {
+		return asCallable(
+			new RtlLocator(
+				() => runQuery(this.resolve(), query),
+				this.user,
+				query,
+				this.resolve,
+			),
 		);
 	}
 
