@@ -12,22 +12,22 @@ function setup() {
 }
 
 describe("ContactForm (vitest + RTL)", () => {
-	it("renders the form heading", async () => {
+	it("renders the form heading", () => {
 		const { elements } = setup();
-		expect(await elements.heading().textContent()).toBe("Contact us");
+		expect(elements.heading()).toHaveTextContent("Contact us");
 	});
 
-	it("renders the form fields", async () => {
+	it("renders the form fields", () => {
 		const { elements } = setup();
-		expect(await elements.nameInput().isVisible()).toBe(true);
-		expect(await elements.messageInput().isVisible()).toBe(true);
-		expect(await elements.submitButton().isVisible()).toBe(true);
+		expect(elements.nameInput()).toBeVisible();
+		expect(elements.messageInput()).toBeVisible();
+		expect(elements.submitButton()).toBeVisible();
 	});
 
 	it("fills in the name field", async () => {
 		const { elements, actions } = setup();
 		await actions.fillName("Alice");
-		expect(await elements.nameInput().inputValue()).toBe("Alice");
+		expect(elements.nameInput()).toHaveValue("Alice");
 	});
 
 	it("submits the form and shows confirmation", async () => {
@@ -35,10 +35,10 @@ describe("ContactForm (vitest + RTL)", () => {
 
 		await actions.submitForm("Alice", "Hello!");
 
-		expect(await elements.thankYou("Alice").textContent()).toBe(
+		expect(elements.thankYou("Alice").get()).toHaveTextContent(
 			"Thank you, Alice!",
 		);
-		expect(await elements.confirmation().textContent()).toBe(
+		expect(elements.confirmation()).toHaveTextContent(
 			"Your message has been sent.",
 		);
 	});

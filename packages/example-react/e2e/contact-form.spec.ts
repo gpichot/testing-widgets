@@ -9,22 +9,20 @@ test.describe("ContactForm (Playwright)", () => {
 
 	test("renders the form heading", async ({ page }) => {
 		const { elements } = contactForm.from(playwright(page));
-		await expect
-			.poll(() => elements.heading().textContent())
-			.toBe("Contact us");
+		await expect(elements.heading()).toHaveText("Contact us");
 	});
 
 	test("renders the form fields", async ({ page }) => {
 		const { elements } = contactForm.from(playwright(page));
-		expect(await elements.nameInput().isVisible()).toBe(true);
-		expect(await elements.messageInput().isVisible()).toBe(true);
-		expect(await elements.submitButton().isVisible()).toBe(true);
+		await expect(elements.nameInput()).toBeVisible();
+		await expect(elements.messageInput()).toBeVisible();
+		await expect(elements.submitButton()).toBeVisible();
 	});
 
 	test("fills in the name field", async ({ page }) => {
 		const { elements, actions } = contactForm.from(playwright(page));
 		await actions.fillName("Alice");
-		expect(await elements.nameInput().inputValue()).toBe("Alice");
+		await expect(elements.nameInput()).toHaveValue("Alice");
 	});
 
 	test("submits the form and shows confirmation", async ({ page }) => {
@@ -32,10 +30,10 @@ test.describe("ContactForm (Playwright)", () => {
 
 		await actions.submitForm("Alice", "Hello!");
 
-		await expect
-			.poll(() => elements.thankYou("Alice").textContent())
-			.toBe("Thank you, Alice!");
-		expect(await elements.confirmation().textContent()).toBe(
+		await expect(elements.thankYou("Alice").get()).toHaveText(
+			"Thank you, Alice!",
+		);
+		await expect(elements.confirmation()).toHaveText(
 			"Your message has been sent.",
 		);
 	});

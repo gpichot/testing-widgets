@@ -10,65 +10,80 @@ describe("rtl adapter", () => {
 	it("queries elements by role", () => {
 		document.body.innerHTML = "<button>Save</button>";
 		const locator = rtl(document.body);
-		const btn = locator.getByRole("button", { name: "Save" });
-		expect(btn).toBeDefined();
+		expect(locator.getByRole("button", { name: "Save" })()).toBeVisible();
 	});
 
 	it("queries elements by label", () => {
 		document.body.innerHTML =
 			'<label for="email">Email</label><input id="email" />';
 		const locator = rtl(document.body);
-		const input = locator.getByLabel("Email");
-		expect(input).toBeDefined();
+		expect(locator.getByLabel("Email")()).toBeVisible();
 	});
 
 	it("queries elements by text", () => {
 		document.body.innerHTML = "<p>Hello world</p>";
 		const locator = rtl(document.body);
-		const el = locator.getByText("Hello world");
-		expect(el).toBeDefined();
+		expect(locator.getByText("Hello world")()).toHaveTextContent("Hello world");
 	});
 
 	it("queries elements by placeholder", () => {
 		document.body.innerHTML = '<input placeholder="Search..." />';
 		const locator = rtl(document.body);
-		const el = locator.getByPlaceholder("Search...");
-		expect(el).toBeDefined();
+		expect(locator.getByPlaceholder("Search...")()).toBeVisible();
 	});
 
 	it("queries elements by test id", () => {
 		document.body.innerHTML = '<div data-testid="my-el">content</div>';
 		const locator = rtl(document.body);
-		const el = locator.getByTestId("my-el");
-		expect(el).toBeDefined();
+		expect(locator.getByTestId("my-el")()).toHaveTextContent("content");
 	});
 
 	it("queries with regex", () => {
 		document.body.innerHTML = "<button>Submit form</button>";
 		const locator = rtl(document.body);
-		const btn = locator.getByRole("button", { name: /submit/i });
-		expect(btn).toBeDefined();
+		expect(locator.getByRole("button", { name: /submit/i })()).toBeVisible();
 	});
 
-	it("throws when element is not found (on interaction)", async () => {
+	it("returns null with query() when element is not found", () => {
 		document.body.innerHTML = "";
 		const locator = rtl(document.body);
-		// Locators are lazy — error surfaces when interacting
-		await expect(locator.getByRole("button").click()).rejects.toThrow(
+		expect(locator.getByRole("button").query()).toBeNull();
+	});
+
+	it("throws with get() when element is not found", () => {
+		document.body.innerHTML = "";
+		const locator = rtl(document.body);
+		expect(() => locator.getByRole("button").get()).toThrow(
 			'Unable to find element with role "button"',
 		);
 	});
 
-	it("reads text content", async () => {
-		document.body.innerHTML = "<p>Hello</p>";
-		const locator = rtl(document.body).getByText("Hello");
-		expect(await locator.textContent()).toBe("Hello");
+	it("returns all matching elements with getAll()", () => {
+		document.body.innerHTML =
+			"<button>A</button><button>B</button><button>C</button>";
+		const locator = rtl(document.body);
+		const buttons = locator.getByRole("button").getAll();
+		expect(buttons).toHaveLength(3);
 	});
 
-	it("reads attributes", async () => {
+	it("returns empty array with queryAll() when none found", () => {
+		document.body.innerHTML = "";
+		const locator = rtl(document.body);
+		expect(locator.getByRole("button").queryAll()).toEqual([]);
+	});
+
+	it("calling locator() is shorthand for get()", () => {
+		document.body.innerHTML = "<p>Hello</p>";
+		const locator = rtl(document.body);
+		const el = locator.getByText("Hello")();
+		expect(el).toBeInstanceOf(HTMLElement);
+		expect(el).toHaveTextContent("Hello");
+	});
+
+	it("reads attributes", () => {
 		document.body.innerHTML = '<a href="/home">Home</a>';
-		const locator = rtl(document.body).getByRole("link", { name: "Home" });
-		expect(await locator.getAttribute("href")).toBe("/home");
+		const link = rtl(document.body).getByRole("link", { name: "Home" })();
+		expect(link).toHaveAttribute("href", "/home");
 	});
 
 	it("clicks elements", async () => {
@@ -104,8 +119,7 @@ describe("rtl adapter", () => {
 		const locator = rtl(document.body);
 		await locator.getByLabel("Name").fill("Alice");
 
-		const input = document.getElementById("name") as HTMLInputElement;
-		expect(input.value).toBe("Alice");
+		expect(locator.getByLabel("Name")()).toHaveValue("Alice");
 	});
 
 	it("fills inputs using userEvent when provided", async () => {
@@ -130,11 +144,11 @@ describe("rtl adapter", () => {
 		const locator = rtl(document.body);
 		const cb = locator.getByRole("checkbox");
 
-		expect(await cb.isChecked()).toBe(false);
+		expect(cb()).not.toBeChecked();
 		await cb.check();
-		expect(await cb.isChecked()).toBe(true);
+		expect(cb()).toBeChecked();
 		await cb.uncheck();
-		expect(await cb.isChecked()).toBe(false);
+		expect(cb()).not.toBeChecked();
 	});
 
 	it("chains locators for scoped queries", () => {
@@ -144,8 +158,7 @@ describe("rtl adapter", () => {
 		`;
 		const locator = rtl(document.body);
 		const sectionB = locator.getByTestId("section-b");
-		const btn = sectionB.getByRole("button", { name: "Save" });
-		expect(btn).toBeDefined();
+		expect(sectionB.getByRole("button", { name: "Save" })()).toBeVisible();
 	});
 });
 
@@ -167,9 +180,9 @@ describe("rtl adapter + widget()", () => {
 
 		const loginForm = widget((l) => ({
 			elements: {
-				email: () => l.byLabel("Email"),
-				password: () => l.byLabel("Password"),
-				submit: () => l.button({ name: "Sign in" }),
+				email: l.byLabel("Email"),
+				password: l.byLabel("Password"),
+				submit: l.button({ name: "Sign in" }),
 			},
 			actions: {
 				login: async (email: string, password: string) => {
@@ -182,17 +195,14 @@ describe("rtl adapter + widget()", () => {
 
 		const { elements, actions } = loginForm.from(rtl(document.body));
 
-		// Elements are findable
-		expect(await elements.email().textContent()).not.toBeNull();
-		expect(await elements.submit().textContent()).toBe("Sign in");
+		expect(elements.email()).toBeVisible();
+		expect(elements.submit()).toHaveTextContent("Sign in");
 
-		// Actions work
 		await actions.login("user@test.com", "secret");
-		const emailInput = document.getElementById("email") as HTMLInputElement;
-		expect(emailInput.value).toBe("user@test.com");
+		expect(elements.email()).toHaveValue("user@test.com");
 	});
 
-	it("supports role shortcuts in widget definitions", async () => {
+	it("supports role shortcuts in widget definitions", () => {
 		document.body.innerHTML = `
 			<h1>Welcome</h1>
 			<a href="/about">About</a>
@@ -202,33 +212,33 @@ describe("rtl adapter + widget()", () => {
 
 		const page = widget((l) => ({
 			elements: {
-				title: () => l.heading({ name: "Welcome" }),
-				about: () => l.link({ name: "About" }),
-				terms: () => l.checkbox({ name: "Accept terms" }),
-				country: () => l.combobox({ name: "Country" }),
+				title: l.heading({ name: "Welcome" }),
+				about: l.link({ name: "About" }),
+				terms: l.checkbox({ name: "Accept terms" }),
+				country: l.combobox({ name: "Country" }),
 			},
 		}));
 
 		const { elements } = page.from(rtl(document.body));
 
-		expect(await elements.title().textContent()).toBe("Welcome");
-		expect(await elements.about().getAttribute("href")).toBe("/about");
-		expect(await elements.terms().isChecked()).toBe(false);
-		expect(elements.country()).toBeDefined();
+		expect(elements.title()).toHaveTextContent("Welcome");
+		expect(elements.about()).toHaveAttribute("href", "/about");
+		expect(elements.terms()).not.toBeChecked();
+		expect(elements.country()).toBeVisible();
 	});
 
-	it("supports widget composition", async () => {
+	it("supports widget composition", () => {
 		document.body.innerHTML = `
 			<div data-testid="header"><h1>My App</h1></div>
 			<div data-testid="form"><button>Submit</button></div>
 		`;
 
 		const header = widget((l) => ({
-			elements: { title: () => l.heading({ name: "My App" }) },
+			elements: { title: l.heading({ name: "My App" }) },
 		}));
 
 		const form = widget((l) => ({
-			elements: { submit: () => l.button({ name: "Submit" }) },
+			elements: { submit: l.button({ name: "Submit" }) },
 		}));
 
 		const appPage = widget((l) => ({
@@ -240,7 +250,7 @@ describe("rtl adapter + widget()", () => {
 
 		const { widgets } = appPage.from(rtl(document.body));
 
-		expect(await widgets.header.elements.title().textContent()).toBe("My App");
-		expect(await widgets.form.elements.submit().textContent()).toBe("Submit");
+		expect(widgets.header.elements.title()).toHaveTextContent("My App");
+		expect(widgets.form.elements.submit()).toHaveTextContent("Submit");
 	});
 });
