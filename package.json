@@ -8,6 +8,13 @@
 		"check:fix": "biome check --fix .",
 		"test": "turbo run test"
 	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"sharp",
+			"esbuild",
+			"@biomejs/biome"
+		]
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.0",
 		"turbo": "^2.4.0",

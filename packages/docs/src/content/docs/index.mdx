@@ -1,0 +1,36 @@
+---
+title: testing-ui
+description: Framework and runner agnostic UI testing abstractions.
+template: splash
+hero:
+  tagline: Define your UI test widgets once, run them with any test runner.
+  actions:
+    - text: Get Started
+      link: /getting-started/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/gpichot/testing-ui
+      variant: minimal
+      icon: external
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid stagger>
+  <Card title="Framework Agnostic" icon="rocket">
+    One widget definition works with React Testing Library, Playwright, and any
+    future adapter.
+  </Card>
+  <Card title="Widget Object Model" icon="puzzle">
+    Encapsulate element selectors and user actions into reusable, composable
+    widget objects.
+  </Card>
+  <Card title="Intuitive Locators" icon="pencil">
+    Role shortcuts like `button()`, `heading()`, `textbox()` and short aliases
+    like `byLabel()`, `byText()`.
+  </Card>
+  <Card title="Lazy & Callable" icon="setting">
+    Queries resolve on access. Locators are callable — `heading()` is shorthand
+    for `heading.get()`.
+  </Card>
+</CardGrid>
