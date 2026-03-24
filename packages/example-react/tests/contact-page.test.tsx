@@ -29,9 +29,7 @@ describe("ContactPage (vitest + RTL)", () => {
 
 		await actions.submitForm("Bob", "Hi there!");
 
-		expect(elements.thankYou("Bob").get()).toHaveTextContent(
-			"Thank you, Bob!",
-		);
+		expect(elements.thankYou("Bob").get()).toHaveTextContent("Thank you, Bob!");
 		expect(elements.confirmation()).toHaveTextContent(
 			"Your message has been sent.",
 		);

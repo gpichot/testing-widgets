@@ -24,9 +24,7 @@ test.describe("ContactPage (Playwright)", () => {
 
 		await actions.submitForm("Bob", "Hi there!");
 
-		await expect(elements.thankYou("Bob").get()).toHaveText(
-			"Thank you, Bob!",
-		);
+		await expect(elements.thankYou("Bob").get()).toHaveText("Thank you, Bob!");
 		await expect(elements.confirmation()).toHaveText(
 			"Your message has been sent.",
 		);
