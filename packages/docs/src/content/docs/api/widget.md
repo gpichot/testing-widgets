@@ -3,9 +3,7 @@ title: widget()
 description: API reference for the widget() factory function.
 ---
 
-The `widget()` function is the main entry point for defining reusable, runner-agnostic test widgets.
-
-## Import
+Creates a reusable, runner-agnostic widget definition.
 
 ```ts
 import { widget } from "testing-ui";
@@ -14,96 +12,47 @@ import { widget } from "testing-ui";
 ## Signature
 
 ```ts
-function widget<T>(factory: (locator: LocatorWith) => T): WidgetDef<T>;
+function widget<T>(factory: (locator: LocatorWith) => T): { from(locator: Locator): T }
 ```
 
-### Parameters
-
-| Parameter | Type | Description |
-| --------- | ---- | ----------- |
-| `factory` | `(locator: LocatorWith) => T` | A function that receives an enhanced locator and returns your widget shape |
-
-### Returns
-
-A `WidgetDef<T>` object with a single method:
-
-```ts
-interface WidgetDef<T> {
-  from(locator: Locator): T;
-}
-```
+The factory receives a [`LocatorWith`](/api/locator-with/) (a locator with role shortcuts) and returns whatever shape you want. Call `.from(adapter)` to connect it to a test runner.
 
 ## Usage
 
-### Basic widget
-
 ```ts
-const myWidget = widget((l) => ({
-  heading: l.heading({ name: "Welcome" }),
-  submitButton: l.button({ name: "Submit" }),
-}));
-
-// Connect to a test runner
-const { heading, submitButton } = myWidget.from(rtl(container));
-```
-
-### With elements and actions
-
-```ts
-const loginForm = widget((l) => ({
-  elements: {
-    email: l.byLabel("Email"),
-    password: l.byLabel("Password"),
-    submit: l.button({ name: "Sign in" }),
-  },
-  actions: {
-    login: async (email: string, password: string) => {
-      await l.byLabel("Email").fill(email);
-      await l.byLabel("Password").fill(password);
-      await l.button({ name: "Sign in" }).click();
-    },
+const myForm = widget((l) => ({
+  nameInput: l.byLabel("Name"),
+  submit: l.button({ name: "Save" }),
+  save: async (name: string) => {
+    await l.byLabel("Name").fill(name);
+    await l.button({ name: "Save" }).click();
   },
 }));
+
+// Connect to an adapter
+const { nameInput, submit, save } = myForm.from(rtl(container, user));
+const { nameInput, submit, save } = myForm.from(playwright(page));
 ```
 
-### With parameterized elements
-
-Elements can be functions that accept parameters:
+Elements can be parameterized:
 
 ```ts
 const userList = widget((l) => ({
-  elements: {
-    userRow: (name: string) => l.byRole("row", { name }),
-    deleteButton: (name: string) =>
-      l.byRole("row", { name }).getByRole("button", { name: "Delete" }),
-  },
+  row: (name: string) => l.byRole("row", { name }),
+  deleteBtn: (name: string) =>
+    l.byRole("row", { name }).getByRole("button", { name: "Delete" }),
 }));
 ```
 
-## How It Works
-
-Internally, `widget()` calls `enhance()` on the provided locator to add shortcut methods, then passes it to your factory function:
-
-```ts
-function widget<T>(factory: (locator: LocatorWith) => T) {
-  return {
-    from(locator: Locator): T {
-      return factory(enhance(locator));
-    },
-  };
-}
-```
-
-## Type: WidgetDef
+## WidgetDef type
 
 ```ts
 type WidgetDef<T> = ReturnType<typeof widget<T>>;
 ```
 
-Use this type when you need to pass widget definitions around:
+## Helper utilities
 
-```ts
-function setupWidget<T>(def: WidgetDef<T>, container: HTMLElement): T {
-  return def.from(rtl(container));
-}
-```
+`widget()` internally uses two lower-level functions that are also exported:
+
+- **`enhance(base: Locator): LocatorWith`** — wraps a base locator with role shortcuts and short aliases. Called automatically by `widget()`.
+- **`asCallable(impl: LocatorMethods): Locator`** — makes a `LocatorMethods` implementation callable (calling it invokes `.get()`). Used by adapter authors.

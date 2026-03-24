@@ -3,12 +3,12 @@ title: testing-ui
 description: Framework and runner agnostic UI testing abstractions.
 template: splash
 hero:
-  tagline: Write your UI tests once, run them everywhere. A Widget Object Model pattern for framework-agnostic test abstractions.
+  tagline: Define your UI test widgets once, run them with any test runner.
   actions:
     - text: Get Started
-      link: /getting-started/introduction/
+      link: /getting-started/
       icon: right-arrow
-    - text: View on GitHub
+    - text: GitHub
       link: https://github.com/gpichot/testing-ui
       variant: minimal
       icon: external
@@ -18,19 +18,19 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
 
 <CardGrid stagger>
   <Card title="Framework Agnostic" icon="rocket">
-    Define your test widgets once and use them across React Testing Library,
-    Playwright, and more.
+    One widget definition works with React Testing Library, Playwright, and any
+    future adapter.
   </Card>
   <Card title="Widget Object Model" icon="puzzle">
-    Structure tests around reusable widget definitions that encapsulate
-    element selectors and user actions.
+    Encapsulate element selectors and user actions into reusable, composable
+    widget objects.
   </Card>
-  <Card title="Intuitive API" icon="pencil">
-    Role-based locators with shortcuts like `button()`, `heading()`, and
-    `textbox()` — write tests that read like plain English.
+  <Card title="Intuitive Locators" icon="pencil">
+    Role shortcuts like `button()`, `heading()`, `textbox()` and short aliases
+    like `byLabel()`, `byText()`.
   </Card>
-  <Card title="Lazy Evaluation" icon="setting">
-    Locator queries are resolved only when accessed, making your widgets
-    safe to define before rendering.
+  <Card title="Lazy & Callable" icon="setting">
+    Queries resolve on access. Locators are callable — `heading()` is shorthand
+    for `heading.get()`.
   </Card>
 </CardGrid>

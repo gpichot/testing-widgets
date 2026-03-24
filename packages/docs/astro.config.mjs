@@ -15,31 +15,11 @@ export default defineConfig({
         },
       ],
       sidebar: [
-        {
-          label: "Getting Started",
-          items: [
-            { label: "Introduction", slug: "getting-started/introduction" },
-            { label: "Installation", slug: "getting-started/installation" },
-            { label: "Quick Start", slug: "getting-started/quick-start" },
-          ],
-        },
-        {
-          label: "Core Concepts",
-          items: [
-            {
-              label: "Widget Object Model",
-              slug: "concepts/widget-object-model",
-            },
-            { label: "Locators", slug: "concepts/locators" },
-            { label: "Adapters", slug: "concepts/adapters" },
-          ],
-        },
+        { label: "Getting Started", slug: "getting-started" },
         {
           label: "API Reference",
           items: [
             { label: "widget()", slug: "api/widget" },
-            { label: "enhance()", slug: "api/enhance" },
-            { label: "asCallable()", slug: "api/as-callable" },
             { label: "Locator", slug: "api/locator" },
             { label: "LocatorWith", slug: "api/locator-with" },
           ],
@@ -47,10 +27,7 @@ export default defineConfig({
         {
           label: "Adapters",
           items: [
-            {
-              label: "React Testing Library",
-              slug: "adapters/rtl",
-            },
+            { label: "React Testing Library", slug: "adapters/rtl" },
             { label: "Playwright", slug: "adapters/playwright" },
           ],
         },

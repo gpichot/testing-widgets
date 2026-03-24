@@ -1,11 +1,11 @@
 ---
 title: "Example: Contact Form"
-description: A complete example showing how to test a Contact Form with testing-ui.
+description: A real-world example testing a Contact Form across two runners.
 ---
 
-This example demonstrates how a single widget definition is used across both unit tests (Vitest + React Testing Library) and E2E tests (Playwright).
+This example shows a single widget definition used in both Vitest+RTL and Playwright tests.
 
-## The Widget Definition
+## Widget Definition
 
 ```ts
 // src/ContactForm.widgets.ts
@@ -33,21 +33,12 @@ export const contactForm = widget((l) => ({
 }));
 ```
 
-### What's happening here
-
-- **`elements`** — locators for each part of the form. Most are direct locators, but `thankYou` is a function because it needs a dynamic name.
-- **`actions`** — reusable interactions. `submitForm` composes multiple steps into a single async action.
-- The widget uses shortcuts like `l.heading()`, `l.button()`, `l.byLabel()`, and `l.byText()`.
-
-## Unit Tests (Vitest + React Testing Library)
+## Unit Test (Vitest + RTL)
 
 ```ts
-// tests/contact-form.test.tsx
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { rtl } from "testing-ui/adapters/rtl";
-import { describe, expect, it } from "vitest";
-import { ContactForm } from "../src/ContactForm";
 import { contactForm } from "../src/ContactForm.widgets";
 
 function setup() {
@@ -56,97 +47,31 @@ function setup() {
   return contactForm.from(rtl(container, user));
 }
 
-describe("ContactForm (vitest + RTL)", () => {
-  it("renders the form heading", () => {
-    const { elements } = setup();
-    expect(elements.heading()).toHaveTextContent("Contact us");
-  });
+it("submits the form and shows confirmation", async () => {
+  const { elements, actions } = setup();
+  await actions.submitForm("Alice", "Hello!");
 
-  it("renders the form fields", () => {
-    const { elements } = setup();
-    expect(elements.nameInput()).toBeVisible();
-    expect(elements.messageInput()).toBeVisible();
-    expect(elements.submitButton()).toBeVisible();
-  });
-
-  it("fills in the name field", async () => {
-    const { elements, actions } = setup();
-    await actions.fillName("Alice");
-    expect(elements.nameInput()).toHaveValue("Alice");
-  });
-
-  it("submits the form and shows confirmation", async () => {
-    const { elements, actions } = setup();
-    await actions.submitForm("Alice", "Hello!");
-
-    expect(elements.thankYou("Alice").get()).toHaveTextContent(
-      "Thank you, Alice!"
-    );
-    expect(elements.confirmation()).toHaveTextContent(
-      "Your message has been sent."
-    );
-  });
+  expect(elements.thankYou("Alice").get()).toHaveTextContent("Thank you, Alice!");
+  expect(elements.confirmation()).toHaveTextContent("Your message has been sent.");
 });
 ```
 
-### Key points
-
-- `setup()` creates a `userEvent` instance, renders the component, and connects the widget via `rtl(container, user)`
-- Elements are accessed with `elements.heading()` — the callable syntax resolves the locator
-- Actions like `actions.fillName("Alice")` abstract away the interaction details
-
-## E2E Tests (Playwright)
+## E2E Test (Playwright)
 
 ```ts
-// e2e/contact-form.spec.ts
-import { expect, test } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { playwright } from "testing-ui/adapters/playwright";
 import { contactForm } from "../src/ContactForm.widgets";
 
-test.describe("ContactForm (Playwright)", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/");
-  });
+test("submits the form and shows confirmation", async ({ page }) => {
+  await page.goto("/");
+  const { elements, actions } = contactForm.from(playwright(page));
 
-  test("renders the form heading", async ({ page }) => {
-    const { elements } = contactForm.from(playwright(page));
-    await expect(elements.heading()).toHaveText("Contact us");
-  });
+  await actions.submitForm("Alice", "Hello!");
 
-  test("renders the form fields", async ({ page }) => {
-    const { elements } = contactForm.from(playwright(page));
-    await expect(elements.nameInput()).toBeVisible();
-    await expect(elements.messageInput()).toBeVisible();
-    await expect(elements.submitButton()).toBeVisible();
-  });
-
-  test("fills in the name field", async ({ page }) => {
-    const { elements, actions } = contactForm.from(playwright(page));
-    await actions.fillName("Alice");
-    await expect(elements.nameInput()).toHaveValue("Alice");
-  });
-
-  test("submits the form and shows confirmation", async ({ page }) => {
-    const { elements, actions } = contactForm.from(playwright(page));
-    await actions.submitForm("Alice", "Hello!");
-
-    await expect(elements.thankYou("Alice").get()).toHaveText(
-      "Thank you, Alice!"
-    );
-    await expect(elements.confirmation()).toHaveText(
-      "Your message has been sent."
-    );
-  });
+  await expect(elements.thankYou("Alice").get()).toHaveText("Thank you, Alice!");
+  await expect(elements.confirmation()).toHaveText("Your message has been sent.");
 });
 ```
 
-### Key points
-
-- The **same widget** (`contactForm`) and the **same test logic** — only the adapter changes
-- `playwright(page)` replaces `rtl(container, user)`
-- Playwright tests use `await expect(...)` for async assertions
-- `elements.heading()` returns a Playwright locator that works with Playwright's `expect`
-
-## Same Widget, Different Runners
-
-The core value of testing-ui is visible here: both test files import the same `contactForm` widget. When the form's UI changes (e.g., the "Send" button is renamed to "Submit"), you update the widget definition in one place and both test suites continue to work.
+Same widget, same test logic — only the adapter differs.
