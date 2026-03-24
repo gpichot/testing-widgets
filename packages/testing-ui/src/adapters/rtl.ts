@@ -268,6 +268,11 @@ const implicitRoles: Record<string, string> = {
 	combobox: 'select, [role="combobox"]',
 	dialog: 'dialog, [role="dialog"]',
 	img: 'img[alt], [role="img"]',
+	navigation: 'nav, [role="navigation"]',
+	region:
+		'section[aria-label], section[aria-labelledby], [role="region"]',
+	tab: '[role="tab"]',
+	tabpanel: '[role="tabpanel"]',
 };
 
 function findAllByRole(
