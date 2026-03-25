@@ -16,7 +16,7 @@
 import { asCallable } from "../callable.js";
 import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
 
-/** Minimal Playwright locator/page surface we depend on (no compile-time dep). */
+/** Minimal Playwright locator surface we depend on (no compile-time dep). */
 interface PwLocatable {
 	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
 	getByLabel(text: string | RegExp): PwLocatable;
@@ -27,7 +27,7 @@ interface PwLocatable {
 	fill(value: string): Promise<void>;
 	check(): Promise<void>;
 	uncheck(): Promise<void>;
-	selectOption(value: string | string[]): Promise<void>;
+	selectOption(value: string | string[]): Promise<string[]>;
 	clear(): Promise<void>;
 	textContent(): Promise<string | null>;
 	getAttribute(name: string): Promise<string | null>;
@@ -38,12 +38,21 @@ interface PwLocatable {
 	all(): Promise<PwLocatable[]>;
 }
 
-export function playwright(page: PwLocatable): Locator {
+/** Minimal surface needed from a Playwright Page or FrameLocator. */
+interface PwPage {
+	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
+	getByLabel(text: string | RegExp): PwLocatable;
+	getByPlaceholder(text: string | RegExp): PwLocatable;
+	getByText(text: string | RegExp): PwLocatable;
+	getByTestId(testId: string): PwLocatable;
+}
+
+export function playwright(page: PwPage | PwLocatable): Locator {
 	return asCallable(new PwAdapter(page));
 }
 
 class PwAdapter implements LocatorMethods {
-	constructor(private pw: PwLocatable) {}
+	constructor(private pw: PwPage | PwLocatable) {}
 
 	getByRole(role: string, options?: ByRoleOptions): Locator {
 		return asCallable(
@@ -69,66 +78,70 @@ class PwAdapter implements LocatorMethods {
 		return asCallable(new PwAdapter(this.pw.getByTestId(testId)));
 	}
 
-	get(): PwLocatable {
+	private get locatable(): PwLocatable {
+		return this.pw as PwLocatable;
+	}
+
+	get(): PwPage | PwLocatable {
 		return this.pw;
 	}
 
-	getAll(): PwLocatable[] {
+	getAll(): (PwPage | PwLocatable)[] {
 		throw new Error(
 			"Playwright getAll() is async — use find() or await locator.get().all() instead",
 		);
 	}
 
-	query(): PwLocatable {
+	query(): PwPage | PwLocatable {
 		// Playwright locators are always lazy — query() returns the locator itself
 		return this.pw;
 	}
 
-	queryAll(): PwLocatable[] {
+	queryAll(): (PwPage | PwLocatable)[] {
 		throw new Error(
 			"Playwright queryAll() is async — use await locator.get().all() instead",
 		);
 	}
 
-	async find(): Promise<PwLocatable> {
+	async find(): Promise<PwPage | PwLocatable> {
 		return this.pw;
 	}
 
 	click() {
-		return this.pw.click();
+		return this.locatable.click();
 	}
 	fill(value: string) {
-		return this.pw.fill(value);
+		return this.locatable.fill(value);
 	}
 	check() {
-		return this.pw.check();
+		return this.locatable.check();
 	}
 	uncheck() {
-		return this.pw.uncheck();
+		return this.locatable.uncheck();
 	}
-	selectOption(value: string | string[]) {
-		return this.pw.selectOption(value);
+	async selectOption(value: string | string[]) {
+		await this.locatable.selectOption(value);
 	}
 	clear() {
-		return this.pw.clear();
+		return this.locatable.clear();
 	}
 
 	textContent() {
-		return this.pw.textContent();
+		return this.locatable.textContent();
 	}
 	getAttribute(name: string) {
-		return this.pw.getAttribute(name);
+		return this.locatable.getAttribute(name);
 	}
 	inputValue() {
-		return this.pw.inputValue();
+		return this.locatable.inputValue();
 	}
 	isVisible() {
-		return this.pw.isVisible();
+		return this.locatable.isVisible();
 	}
 	isEnabled() {
-		return this.pw.isEnabled();
+		return this.locatable.isEnabled();
 	}
 	isChecked() {
-		return this.pw.isChecked();
+		return this.locatable.isChecked();
 	}
 }
