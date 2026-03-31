@@ -32,5 +32,5 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      - run: pnpm --filter @testing-ui/example-react exec playwright install chromium --with-deps
+      - run: pnpm --filter @testing-widgets/example-react exec playwright install chromium --with-deps
       - run: pnpm test:e2e

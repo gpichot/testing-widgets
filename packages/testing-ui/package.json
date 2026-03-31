@@ -1,5 +1,5 @@
 {
-	"name": "testing-ui",
+	"name": "testing-widgets",
 	"version": "0.0.1",
 	"description": "Widget Object Model - framework and runner agnostic UI testing abstractions",
 	"type": "module",

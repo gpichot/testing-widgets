@@ -6,7 +6,7 @@ description: Enhanced locator with role shortcuts and short aliases.
 `LocatorWith` extends [`Locator`](/api/locator/) with convenience methods. This is the type you get inside a `widget()` factory.
 
 ```ts
-import type { LocatorWith } from "testing-ui";
+import type { LocatorWith } from "testing-widgets";
 ```
 
 ## Short Aliases

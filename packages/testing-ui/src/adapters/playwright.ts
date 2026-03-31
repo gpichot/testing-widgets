@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { playwright } from "testing-ui/adapters/playwright";
+ * import { playwright } from "testing-widgets/adapters/playwright";
  * import { test } from "@playwright/test";
  *
  * test("example", async ({ page }) => {

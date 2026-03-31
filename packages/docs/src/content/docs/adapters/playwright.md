@@ -1,10 +1,10 @@
 ---
 title: Playwright
-description: Playwright adapter for testing-ui.
+description: Playwright adapter for testing-widgets.
 ---
 
 ```ts
-import { playwright } from "testing-ui/adapters/playwright";
+import { playwright } from "testing-widgets/adapters/playwright";
 ```
 
 ## Signature
@@ -19,7 +19,7 @@ Accepts a Playwright `Page`, `Locator`, or anything matching the `PwLocatable` i
 
 ```ts
 import { test, expect } from "@playwright/test";
-import { playwright } from "testing-ui/adapters/playwright";
+import { playwright } from "testing-widgets/adapters/playwright";
 
 test("example", async ({ page }) => {
   await page.goto("/");

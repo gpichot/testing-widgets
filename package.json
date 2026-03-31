@@ -1,5 +1,5 @@
 {
-	"name": "testing-ui-monorepo",
+	"name": "testing-widgets-monorepo",
 	"private": true,
 	"packageManager": "pnpm@10.29.3",
 	"scripts": {

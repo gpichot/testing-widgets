@@ -3,7 +3,7 @@
  *
  * @example
  * ```ts
- * import { rtl } from "testing-ui/adapters/rtl";
+ * import { rtl } from "testing-widgets/adapters/rtl";
  * import { render } from "@testing-library/react";
  * import userEvent from "@testing-library/user-event";
  *

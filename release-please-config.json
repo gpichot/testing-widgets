@@ -2,7 +2,7 @@
 	"packages": {
 		"packages/testing-ui": {
 			"release-type": "node",
-			"component": "testing-ui",
+			"component": "testing-widgets",
 			"changelog-path": "CHANGELOG.md"
 		}
 	}
