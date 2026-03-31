@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { asCallable } from "../callable.js";
-import type { Locator } from "../types.js";
+import type { LocatorMethods } from "../types.js";
 import { widget } from "../widget.js";
 
-function mockLocator(overrides: Partial<Locator> = {}): Locator {
-	const loc: Locator = asCallable({
+function mockLocator(overrides: Partial<LocatorMethods> = {}) {
+	const base: LocatorMethods = {
 		getByRole: vi.fn(() => mockLocator()),
 		getByLabel: vi.fn(() => mockLocator()),
 		getByPlaceholder: vi.fn(() => mockLocator()),
@@ -27,8 +27,8 @@ function mockLocator(overrides: Partial<Locator> = {}): Locator {
 		query: vi.fn(() => null),
 		queryAll: vi.fn(() => []),
 		find: vi.fn(async () => null),
-		...overrides,
-	} as Locator);
+	};
+	const loc = asCallable(Object.assign(base, overrides));
 	return loc;
 }
 

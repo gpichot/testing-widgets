@@ -99,10 +99,10 @@ describe("rtl adapter", () => {
 
 	it("clicks elements using userEvent when provided", async () => {
 		const mockUser = {
-			click: vi.fn(async () => {}),
-			type: vi.fn(async () => {}),
-			clear: vi.fn(async () => {}),
-			selectOptions: vi.fn(async () => {}),
+			click: vi.fn(async (_el: Element) => {}),
+			type: vi.fn(async (_el: Element, _text: string) => {}),
+			clear: vi.fn(async (_el: Element) => {}),
+			selectOptions: vi.fn(async (_el: Element, _values: string | string[] | HTMLElement | HTMLElement[]) => {}),
 		};
 
 		document.body.innerHTML = "<button>Go</button>";
@@ -124,10 +124,10 @@ describe("rtl adapter", () => {
 
 	it("fills inputs using userEvent when provided", async () => {
 		const mockUser = {
-			click: vi.fn(async () => {}),
-			type: vi.fn(async () => {}),
-			clear: vi.fn(async () => {}),
-			selectOptions: vi.fn(async () => {}),
+			click: vi.fn(async (_el: Element) => {}),
+			type: vi.fn(async (_el: Element, _text: string) => {}),
+			clear: vi.fn(async (_el: Element) => {}),
+			selectOptions: vi.fn(async (_el: Element, _values: string | string[] | HTMLElement | HTMLElement[]) => {}),
 		};
 
 		document.body.innerHTML = '<label for="x">Name</label><input id="x" />';
