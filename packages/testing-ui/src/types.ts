@@ -1,26 +1,29 @@
 /**
  * Methods available on a locator — implemented by adapter classes.
  * Use {@link Locator} for the public-facing callable type.
+ *
+ * @typeParam T - The native element/locator type resolved by the adapter
+ *               (e.g. `HTMLElement` for RTL, Playwright `Locator` for Playwright).
  */
-export interface LocatorMethods {
+export interface LocatorMethods<T = unknown> {
 	// --- Queries ---
-	getByRole(role: string, options?: ByRoleOptions): Locator;
-	getByLabel(text: string | RegExp): Locator;
-	getByPlaceholder(text: string | RegExp): Locator;
-	getByText(text: string | RegExp): Locator;
-	getByTestId(testId: string): Locator;
+	getByRole(role: string, options?: ByRoleOptions): Locator<T>;
+	getByLabel(text: string | RegExp): Locator<T>;
+	getByPlaceholder(text: string | RegExp): Locator<T>;
+	getByText(text: string | RegExp): Locator<T>;
+	getByTestId(testId: string): Locator<T>;
 
 	// --- Resolution ---
 	/** Resolve to the native element/locator. Throws if not found. */
-	get(): unknown;
+	get(): T;
 	/** Resolve all matching native elements/locators. Throws if none found. */
-	getAll(): unknown[];
+	getAll(): T[];
 	/** Resolve to the native element/locator, or null if not found. */
-	query(): unknown | null;
+	query(): T | null;
 	/** Resolve all matching native elements/locators (empty array if none). */
-	queryAll(): unknown[];
+	queryAll(): T[];
 	/** Async resolution — waits for the element to appear. */
-	find(): Promise<unknown>;
+	find(): Promise<T>;
 
 	// --- Actions ---
 	click(): Promise<void>;
@@ -42,6 +45,8 @@ export interface LocatorMethods {
 /**
  * A callable locator. Calling it directly is shorthand for `.get()`.
  *
+ * @typeParam T - The native element/locator type resolved by the adapter.
+ *
  * @example
  * ```ts
  * const heading = locator.getByRole("heading");
@@ -50,9 +55,9 @@ export interface LocatorMethods {
  * heading.query() // returns null instead of throwing
  * ```
  */
-export interface Locator extends LocatorMethods {
+export interface Locator<T = unknown> extends LocatorMethods<T> {
 	/** Shorthand for get(). */
-	(): unknown;
+	(): T;
 }
 
 export interface ByRoleOptions {

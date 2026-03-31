@@ -30,7 +30,7 @@ interface UserEventLike {
 export function rtl(
 	container: HTMLElement = document.body,
 	user?: UserEventLike,
-): Locator {
+): Locator<HTMLElement> {
 	return asCallable(new RtlLocator(() => container, user));
 }
 
@@ -43,7 +43,7 @@ type Query =
 	| { kind: "text"; text: string | RegExp }
 	| { kind: "testid"; id: string };
 
-class RtlLocator implements LocatorMethods {
+class RtlLocator implements LocatorMethods<HTMLElement> {
 	constructor(
 		private resolve: () => HTMLElement,
 		private user?: UserEventLike,
@@ -56,23 +56,23 @@ class RtlLocator implements LocatorMethods {
 
 	// --- Queries (lazy) ---------------------------------------------------
 
-	getByRole(role: string, options?: ByRoleOptions): Locator {
+	getByRole(role: string, options?: ByRoleOptions): Locator<HTMLElement> {
 		return this.lazy({ kind: "role", role, options });
 	}
 
-	getByLabel(text: string | RegExp): Locator {
+	getByLabel(text: string | RegExp): Locator<HTMLElement> {
 		return this.lazy({ kind: "label", text });
 	}
 
-	getByPlaceholder(text: string | RegExp): Locator {
+	getByPlaceholder(text: string | RegExp): Locator<HTMLElement> {
 		return this.lazy({ kind: "placeholder", text });
 	}
 
-	getByText(text: string | RegExp): Locator {
+	getByText(text: string | RegExp): Locator<HTMLElement> {
 		return this.lazy({ kind: "text", text });
 	}
 
-	getByTestId(id: string): Locator {
+	getByTestId(id: string): Locator<HTMLElement> {
 		return this.lazy({ kind: "testid", id });
 	}
 
@@ -115,7 +115,7 @@ class RtlLocator implements LocatorMethods {
 	}
 
 	async fill(value: string): Promise<void> {
-		const el = this.resolve() as HTMLInputElement;
+		const el = this.resolve();
 		if (this.user) {
 			await this.user.clear(el);
 			return this.user.type(el, value);
@@ -124,17 +124,26 @@ class RtlLocator implements LocatorMethods {
 	}
 
 	async check(): Promise<void> {
-		const el = this.resolve() as HTMLInputElement;
-		if (!el.checked) await this.click();
+		const el = this.resolve();
+		if (el instanceof HTMLInputElement && !el.checked) {
+			await this.click();
+		}
 	}
 
 	async uncheck(): Promise<void> {
-		const el = this.resolve() as HTMLInputElement;
-		if (el.checked) await this.click();
+		const el = this.resolve();
+		if (el instanceof HTMLInputElement && el.checked) {
+			await this.click();
+		}
 	}
 
 	async selectOption(value: string | string[]): Promise<void> {
-		const el = this.resolve() as HTMLSelectElement;
+		const el = this.resolve();
+		if (!(el instanceof HTMLSelectElement)) {
+			throw new TypeError(
+				`selectOption requires a <select> element, got <${el.tagName.toLowerCase()}>`,
+			);
+		}
 		if (this.user) return this.user.selectOptions(el, value);
 		const values = Array.isArray(value) ? value : [value];
 		for (const opt of Array.from(el.options)) {
@@ -144,7 +153,7 @@ class RtlLocator implements LocatorMethods {
 	}
 
 	async clear(): Promise<void> {
-		const el = this.resolve() as HTMLInputElement;
+		const el = this.resolve();
 		if (this.user) return this.user.clear(el);
 		setNativeValue(el, "");
 	}
@@ -160,7 +169,16 @@ class RtlLocator implements LocatorMethods {
 	}
 
 	async inputValue(): Promise<string> {
-		return (this.resolve() as HTMLInputElement).value;
+		const el = this.resolve();
+		if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+			return el.value;
+		}
+		if (el instanceof HTMLSelectElement) {
+			return el.value;
+		}
+		throw new TypeError(
+			`inputValue requires an <input>, <textarea>, or <select> element, got <${el.tagName.toLowerCase()}>`,
+		);
 	}
 
 	async isVisible(): Promise<boolean> {
@@ -174,16 +192,29 @@ class RtlLocator implements LocatorMethods {
 	}
 
 	async isEnabled(): Promise<boolean> {
-		return !(this.resolve() as HTMLInputElement).disabled;
+		const el = this.resolve();
+		if (
+			el instanceof HTMLInputElement ||
+			el instanceof HTMLButtonElement ||
+			el instanceof HTMLSelectElement ||
+			el instanceof HTMLTextAreaElement
+		) {
+			return !el.disabled;
+		}
+		return true;
 	}
 
 	async isChecked(): Promise<boolean> {
-		return (this.resolve() as HTMLInputElement).checked;
+		const el = this.resolve();
+		if (el instanceof HTMLInputElement) {
+			return el.checked;
+		}
+		return false;
 	}
 
 	// --- Internal ---------------------------------------------------------
 
-	private lazy(query: Query): Locator {
+	private lazy(query: Query): Locator<HTMLElement> {
 		return asCallable(
 			new RtlLocator(
 				() => runQuery(this.resolve(), query),
@@ -336,7 +367,7 @@ function findAllByAttr(
 	return results;
 }
 
-function setNativeValue(el: HTMLInputElement, value: string): void {
+function setNativeValue(el: HTMLElement, value: string): void {
 	const desc = Object.getOwnPropertyDescriptor(
 		Object.getPrototypeOf(el),
 		"value",

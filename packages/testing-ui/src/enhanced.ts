@@ -5,62 +5,69 @@ import type { ByRoleOptions, Locator, LocatorMethods } from "./types.js";
  * Extended locator with role shortcuts and concise aliases.
  * Adapters implement the base `Locator`; these shortcuts are added
  * automatically by `widget()`.
+ *
+ * @typeParam T - The native element/locator type resolved by the adapter.
  */
-export interface LocatorWith extends Locator {
+export interface LocatorWith<T = unknown> extends Locator<T> {
 	// --- Short aliases for getBy* -----------------------------------------
-	byRole(role: string, options?: ByRoleOptions): LocatorWith;
-	byLabel(text: string | RegExp): LocatorWith;
-	byPlaceholder(text: string | RegExp): LocatorWith;
-	byText(text: string | RegExp): LocatorWith;
-	byTestId(testId: string): LocatorWith;
+	byRole(role: string, options?: ByRoleOptions): LocatorWith<T>;
+	byLabel(text: string | RegExp): LocatorWith<T>;
+	byPlaceholder(text: string | RegExp): LocatorWith<T>;
+	byText(text: string | RegExp): LocatorWith<T>;
+	byTestId(testId: string): LocatorWith<T>;
 
 	// --- Role shortcuts ---------------------------------------------------
-	button(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	link(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	textbox(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	checkbox(options?: Pick<ByRoleOptions, "name" | "checked">): LocatorWith;
-	radio(options?: Pick<ByRoleOptions, "name" | "checked">): LocatorWith;
-	combobox(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	heading(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	dialog(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	list(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	listitem(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	img(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	tab(options?: Pick<ByRoleOptions, "name" | "selected">): LocatorWith;
-	tabpanel(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	navigation(options?: Pick<ByRoleOptions, "name">): LocatorWith;
-	region(options?: Pick<ByRoleOptions, "name">): LocatorWith;
+	button(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	link(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	textbox(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	checkbox(options?: Pick<ByRoleOptions, "name" | "checked">): LocatorWith<T>;
+	radio(options?: Pick<ByRoleOptions, "name" | "checked">): LocatorWith<T>;
+	combobox(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	heading(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	dialog(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	list(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	listitem(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	img(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	tab(options?: Pick<ByRoleOptions, "name" | "selected">): LocatorWith<T>;
+	tabpanel(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	navigation(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
+	region(options?: Pick<ByRoleOptions, "name">): LocatorWith<T>;
 }
 
 /**
  * Wrap a base Locator with shortcut methods.
  */
-export function enhance(base: Locator): LocatorWith {
-	return asCallable(new LocatorProxy(base)) as LocatorWith;
+export function enhance<T>(base: Locator<T>): LocatorWith<T> {
+	// The Proxy created by asCallable delegates property access to the
+	// LocatorProxy instance, which implements the extra shortcut methods.
+	// TypeScript cannot verify this statically, so we widen the return type.
+	return asCallable(new LocatorProxy(base)) as Locator<T> &
+		LocatorWith<T>;
 }
 
-class LocatorProxy implements LocatorMethods {
-	constructor(private base: Locator) {}
+class LocatorProxy<T> implements LocatorMethods<T> {
+	constructor(private base: Locator<T>) {}
 
 	// --- Base Locator (delegate & wrap) ------------------------------------
 
-	private wrap(locator: Locator): LocatorWith {
-		return asCallable(new LocatorProxy(locator)) as LocatorWith;
+	private wrap(locator: Locator<T>): LocatorWith<T> {
+		return asCallable(new LocatorProxy(locator)) as Locator<T> &
+			LocatorWith<T>;
 	}
 
-	getByRole(role: string, options?: ByRoleOptions): LocatorWith {
+	getByRole(role: string, options?: ByRoleOptions): LocatorWith<T> {
 		return this.wrap(this.base.getByRole(role, options));
 	}
-	getByLabel(text: string | RegExp): LocatorWith {
+	getByLabel(text: string | RegExp): LocatorWith<T> {
 		return this.wrap(this.base.getByLabel(text));
 	}
-	getByPlaceholder(text: string | RegExp): LocatorWith {
+	getByPlaceholder(text: string | RegExp): LocatorWith<T> {
 		return this.wrap(this.base.getByPlaceholder(text));
 	}
-	getByText(text: string | RegExp): LocatorWith {
+	getByText(text: string | RegExp): LocatorWith<T> {
 		return this.wrap(this.base.getByText(text));
 	}
-	getByTestId(testId: string): LocatorWith {
+	getByTestId(testId: string): LocatorWith<T> {
 		return this.wrap(this.base.getByTestId(testId));
 	}
 

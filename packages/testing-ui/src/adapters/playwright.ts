@@ -17,7 +17,7 @@ import { asCallable } from "../callable.js";
 import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
 
 /** Minimal Playwright locator surface we depend on (no compile-time dep). */
-interface PwLocatable {
+export interface PwLocatable {
 	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
 	getByLabel(text: string | RegExp): PwLocatable;
 	getByPlaceholder(text: string | RegExp): PwLocatable;
@@ -38,73 +38,88 @@ interface PwLocatable {
 	all(): Promise<PwLocatable[]>;
 }
 
-/** Minimal surface needed from a Playwright Page or FrameLocator. */
-interface PwPage {
-	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
-	getByLabel(text: string | RegExp): PwLocatable;
-	getByPlaceholder(text: string | RegExp): PwLocatable;
-	getByText(text: string | RegExp): PwLocatable;
-	getByTestId(testId: string): PwLocatable;
+/**
+ * Minimal surface needed from a Playwright Page or FrameLocator.
+ * Generic over `L` so that callers who import the real Playwright types
+ * preserve the concrete `Locator` type through the adapter.
+ */
+export interface PwPageLike<L extends PwLocatable = PwLocatable> {
+	getByRole(role: string, options?: { name?: string | RegExp }): L;
+	getByLabel(text: string | RegExp): L;
+	getByPlaceholder(text: string | RegExp): L;
+	getByText(text: string | RegExp): L;
+	getByTestId(testId: string): L;
 }
 
-export function playwright(page: PwPage | PwLocatable): Locator {
-	return asCallable(new PwAdapter(page));
+/**
+ * Create a Locator backed by a Playwright Page or Locator.
+ *
+ * The generic parameter `L` is inferred from the page/locator you pass in,
+ * so `.get()` returns the real Playwright `Locator` type — no assertions needed.
+ */
+export function playwright<L extends PwLocatable>(
+	page: PwPageLike<L> | L,
+): Locator<L> {
+	return asCallable(new PwAdapter<L>(page));
 }
 
-class PwAdapter implements LocatorMethods {
-	constructor(private pw: PwPage | PwLocatable) {}
+class PwAdapter<L extends PwLocatable> implements LocatorMethods<L> {
+	constructor(private pw: PwPageLike<L> | L) {}
 
-	getByRole(role: string, options?: ByRoleOptions): Locator {
+	getByRole(role: string, options?: ByRoleOptions): Locator<L> {
 		return asCallable(
-			new PwAdapter(
-				this.pw.getByRole(role, options ? { name: options.name } : undefined),
+			new PwAdapter<L>(
+				this.pw.getByRole(
+					role,
+					options ? { name: options.name } : undefined,
+				) as L,
 			),
 		);
 	}
 
-	getByLabel(text: string | RegExp): Locator {
-		return asCallable(new PwAdapter(this.pw.getByLabel(text)));
+	getByLabel(text: string | RegExp): Locator<L> {
+		return asCallable(new PwAdapter<L>(this.pw.getByLabel(text) as L));
 	}
 
-	getByPlaceholder(text: string | RegExp): Locator {
-		return asCallable(new PwAdapter(this.pw.getByPlaceholder(text)));
+	getByPlaceholder(text: string | RegExp): Locator<L> {
+		return asCallable(new PwAdapter<L>(this.pw.getByPlaceholder(text) as L));
 	}
 
-	getByText(text: string | RegExp): Locator {
-		return asCallable(new PwAdapter(this.pw.getByText(text)));
+	getByText(text: string | RegExp): Locator<L> {
+		return asCallable(new PwAdapter<L>(this.pw.getByText(text) as L));
 	}
 
-	getByTestId(testId: string): Locator {
-		return asCallable(new PwAdapter(this.pw.getByTestId(testId)));
+	getByTestId(testId: string): Locator<L> {
+		return asCallable(new PwAdapter<L>(this.pw.getByTestId(testId) as L));
 	}
 
-	private get locatable(): PwLocatable {
-		return this.pw as PwLocatable;
+	private get locatable(): L {
+		return this.pw as L;
 	}
 
-	get(): PwPage | PwLocatable {
-		return this.pw;
+	get(): L {
+		return this.pw as L;
 	}
 
-	getAll(): (PwPage | PwLocatable)[] {
+	getAll(): L[] {
 		throw new Error(
 			"Playwright getAll() is async — use find() or await locator.get().all() instead",
 		);
 	}
 
-	query(): PwPage | PwLocatable {
+	query(): L {
 		// Playwright locators are always lazy — query() returns the locator itself
-		return this.pw;
+		return this.pw as L;
 	}
 
-	queryAll(): (PwPage | PwLocatable)[] {
+	queryAll(): L[] {
 		throw new Error(
 			"Playwright queryAll() is async — use await locator.get().all() instead",
 		);
 	}
 
-	async find(): Promise<PwPage | PwLocatable> {
-		return this.pw;
+	async find(): Promise<L> {
+		return this.pw as L;
 	}
 
 	click() {
