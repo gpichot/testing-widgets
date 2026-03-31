@@ -63,7 +63,7 @@ importers:
       jsdom:
         specifier: ^26.0.0
         version: 26.1.0
-      testing-ui:
+      testing-widgets:
         specifier: workspace:*
         version: link:../testing-ui
       typescript:

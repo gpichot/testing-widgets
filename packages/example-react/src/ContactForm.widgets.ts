@@ -1,4 +1,4 @@
-import { widget } from "testing-ui";
+import { widget } from "testing-widgets";
 
 /**
  * Widget definition for the ContactForm component.

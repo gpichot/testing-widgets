@@ -4,14 +4,14 @@ import starlight from "@astrojs/starlight";
 export default defineConfig({
   integrations: [
     starlight({
-      title: "testing-ui",
+      title: "testing-widgets",
       description:
         "Framework and runner agnostic UI testing abstractions using the Widget Object Model pattern.",
       social: [
         {
           icon: "github",
           label: "GitHub",
-          href: "https://github.com/gpichot/testing-ui",
+          href: "https://github.com/gpichot/testing-widgets",
         },
       ],
       sidebar: [

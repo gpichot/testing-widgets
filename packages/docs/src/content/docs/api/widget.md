@@ -6,7 +6,7 @@ description: API reference for the widget() factory function.
 Creates a reusable, runner-agnostic widget definition.
 
 ```ts
-import { widget } from "testing-ui";
+import { widget } from "testing-widgets";
 ```
 
 ## Signature

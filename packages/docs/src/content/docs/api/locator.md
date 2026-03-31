@@ -3,10 +3,10 @@ title: Locator
 description: API reference for the Locator interface.
 ---
 
-The core type in testing-ui. A `Locator` is callable — `locator()` is shorthand for `locator.get()`. All queries are lazy and chainable.
+The core type in testing-widgets. A `Locator` is callable — `locator()` is shorthand for `locator.get()`. All queries are lazy and chainable.
 
 ```ts
-import type { Locator, ByRoleOptions } from "testing-ui";
+import type { Locator, ByRoleOptions } from "testing-widgets";
 ```
 
 ## Queries

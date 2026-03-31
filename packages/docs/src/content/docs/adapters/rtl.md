@@ -1,10 +1,10 @@
 ---
 title: React Testing Library
-description: RTL adapter for testing-ui.
+description: RTL adapter for testing-widgets.
 ---
 
 ```ts
-import { rtl } from "testing-ui/adapters/rtl";
+import { rtl } from "testing-widgets/adapters/rtl";
 ```
 
 ## Signature
@@ -21,7 +21,7 @@ function rtl(container?: HTMLElement, user?: UserEventLike): Locator;
 ```ts
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { rtl } from "testing-ui/adapters/rtl";
+import { rtl } from "testing-widgets/adapters/rtl";
 
 const user = userEvent.setup();
 const { container } = render(<MyComponent />);

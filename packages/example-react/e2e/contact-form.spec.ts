@@ -1,5 +1,5 @@
 import { type Locator as PwLocator, expect, test } from "@playwright/test";
-import { playwright } from "testing-ui/adapters/playwright";
+import { playwright } from "testing-widgets/adapters/playwright";
 import { contactForm } from "../src/ContactForm.widgets.js";
 
 test.describe("ContactForm (Playwright)", () => {

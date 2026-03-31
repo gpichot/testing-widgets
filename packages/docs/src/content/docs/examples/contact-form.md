@@ -9,7 +9,7 @@ This example shows a single widget definition used in both Vitest+RTL and Playwr
 
 ```ts
 // src/ContactForm.widgets.ts
-import { widget } from "testing-ui";
+import { widget } from "testing-widgets";
 
 export const contactForm = widget((l) => ({
   elements: {
@@ -38,7 +38,7 @@ export const contactForm = widget((l) => ({
 ```ts
 import { render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { rtl } from "testing-ui/adapters/rtl";
+import { rtl } from "testing-widgets/adapters/rtl";
 import { contactForm } from "../src/ContactForm.widgets";
 
 function setup() {
@@ -60,7 +60,7 @@ it("submits the form and shows confirmation", async () => {
 
 ```ts
 import { test, expect } from "@playwright/test";
-import { playwright } from "testing-ui/adapters/playwright";
+import { playwright } from "testing-widgets/adapters/playwright";
 import { contactForm } from "../src/ContactForm.widgets";
 
 test("submits the form and shows confirmation", async ({ page }) => {
