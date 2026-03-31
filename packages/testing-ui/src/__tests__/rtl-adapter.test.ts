@@ -102,7 +102,12 @@ describe("rtl adapter", () => {
 			click: vi.fn(async (_el: Element) => {}),
 			type: vi.fn(async (_el: Element, _text: string) => {}),
 			clear: vi.fn(async (_el: Element) => {}),
-			selectOptions: vi.fn(async (_el: Element, _values: string | string[] | HTMLElement | HTMLElement[]) => {}),
+			selectOptions: vi.fn(
+				async (
+					_el: Element,
+					_values: string | string[] | HTMLElement | HTMLElement[],
+				) => {},
+			),
 		};
 
 		document.body.innerHTML = "<button>Go</button>";
@@ -127,7 +132,12 @@ describe("rtl adapter", () => {
 			click: vi.fn(async (_el: Element) => {}),
 			type: vi.fn(async (_el: Element, _text: string) => {}),
 			clear: vi.fn(async (_el: Element) => {}),
-			selectOptions: vi.fn(async (_el: Element, _values: string | string[] | HTMLElement | HTMLElement[]) => {}),
+			selectOptions: vi.fn(
+				async (
+					_el: Element,
+					_values: string | string[] | HTMLElement | HTMLElement[],
+				) => {},
+			),
 		};
 
 		document.body.innerHTML = '<label for="x">Name</label><input id="x" />';

@@ -41,8 +41,7 @@ export function enhance<T>(base: Locator<T>): LocatorWith<T> {
 	// The Proxy created by asCallable delegates property access to the
 	// LocatorProxy instance, which implements the extra shortcut methods.
 	// TypeScript cannot verify this statically, so we widen the return type.
-	return asCallable(new LocatorProxy(base)) as Locator<T> &
-		LocatorWith<T>;
+	return asCallable(new LocatorProxy(base)) as Locator<T> & LocatorWith<T>;
 }
 
 class LocatorProxy<T> implements LocatorMethods<T> {
@@ -51,8 +50,7 @@ class LocatorProxy<T> implements LocatorMethods<T> {
 	// --- Base Locator (delegate & wrap) ------------------------------------
 
 	private wrap(locator: Locator<T>): LocatorWith<T> {
-		return asCallable(new LocatorProxy(locator)) as Locator<T> &
-			LocatorWith<T>;
+		return asCallable(new LocatorProxy(locator)) as Locator<T> & LocatorWith<T>;
 	}
 
 	getByRole(role: string, options?: ByRoleOptions): LocatorWith<T> {
