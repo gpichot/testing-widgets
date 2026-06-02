@@ -157,6 +157,16 @@ pnpm --filter @testing-widgets/example-react exec playwright install chromium
 pnpm test:e2e
 ```
 
+## AI agents
+
+This package ships [TanStack Intent](https://github.com/TanStack/intent) skills under `packages/testing-ui/skills/`. If you use an AI coding agent (Claude Code, Cursor, Copilot, ...), run:
+
+```bash
+npx @tanstack/intent@latest install
+```
+
+to make `define-widget`, `wire-rtl`, and `wire-playwright` available to your agent.
+
 ## License
 
 MIT
