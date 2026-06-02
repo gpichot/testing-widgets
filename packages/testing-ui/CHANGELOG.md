@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/gpichot/testing-widgets/compare/testing-widgets-v0.1.0...testing-widgets-v0.2.0) (2026-06-02)
+
+
+### Features
+
+* ship AI agent skills with published package ([#10](https://github.com/gpichot/testing-widgets/issues/10)) ([43d02d3](https://github.com/gpichot/testing-widgets/commit/43d02d3e3cb6d491aee15b05b2cf45853fe20ae2))
+
 ## [0.1.0](https://github.com/gpichot/testing-widgets/compare/testing-widgets-v0.0.1...testing-widgets-v0.1.0) (2026-03-31)
 
 
