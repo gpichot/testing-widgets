@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/gpichot/testing-widgets/compare/testing-widgets-v0.2.0...testing-widgets-v1.0.0) (2026-11-21)
+
+
+### ⚠ BREAKING CHANGES
+
+* **rtl:** findBy-style find()/findAll() and @testing-library/dom queries ([#13](https://github.com/gpichot/testing-widgets/issues/13))
+
+### Features
+
+* **rtl:** findBy-style find()/findAll() and @testing-library/dom queries ([#13](https://github.com/gpichot/testing-widgets/issues/13)) ([0400614](https://github.com/gpichot/testing-widgets/commit/0400614a6857239292bd2820a1d75472e7b140e3))
+
 ## [0.2.0](https://github.com/gpichot/testing-widgets/compare/testing-widgets-v0.1.0...testing-widgets-v0.2.0) (2026-06-02)
 
 
