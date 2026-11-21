@@ -28,8 +28,22 @@ the widget being wired here.
 # testing-widgets — Wire RTL
 
 The `rtl` adapter connects a widget to a vitest + `@testing-library/react`
-test. It ships its own DOM query engine — no `@testing-library/dom`
-dependency.
+test. Queries are delegated to `@testing-library/dom` (`queryAllBy*`), so role,
+accessible-name, label and text matching are identical to RTL, and
+`get()`/`query()`/`find()` follow `getBy`/`queryBy`/`findBy` semantics
+(they throw/reject when several elements match).
+
+## Async UI
+
+`get()`, `()` and actions resolve synchronously, like RTL `getBy*`. For
+elements that render after an async update, use `find()` — same semantics
+as `findBy*` (exactly one match, 1000ms default timeout, rejects on none or
+multiple). `findAll()` mirrors `findAllBy*`.
+
+```ts
+await actions.submitForm("Alice", "Hello!");
+expect(await elements.thankYou("Alice").find()).toHaveTextContent("Thank you, Alice!");
+```
 
 ## Setup
 
@@ -52,8 +66,8 @@ describe("ContactForm", () => {
   it("submits and shows confirmation", async () => {
     const { elements, actions } = setup();
     await actions.submitForm("Alice", "Hello!");
-    expect(elements.thankYou("Alice").get()).toHaveTextContent("Thank you, Alice!");
-    expect(elements.confirmation()).toHaveTextContent("Your message has been sent.");
+    expect(await elements.thankYou("Alice").find()).toHaveTextContent("Thank you, Alice!");
+    expect(await elements.confirmation.find()).toHaveTextContent("Your message has been sent.");
   });
 });
 ```
@@ -98,8 +112,8 @@ expect(rows).toHaveLength(3);
 
 ### Use RegExp for partial / case-insensitive text matching
 
-String queries are EXACT (`actual === expected`). Use a RegExp for
-anything looser:
+String queries are EXACT (after whitespace normalization, like RTL's
+default matcher). Use a RegExp for anything looser:
 
 ```ts
 l.byText(/submitted/i)             // partial, case-insensitive
@@ -144,35 +158,6 @@ exists to remove.
 
 Source: maintainer-defined antipattern; packages/example-react/tests/contact-form.test.tsx (canonical pattern)
 
-### CRITICAL `ByRole` state filters silently ignored
-
-Wrong:
-
-```ts
-elements: {
-  // `checked: true` is accepted by the type but ignored at runtime —
-  // every checkbox named "Accept" matches.
-  accepted: l.checkbox({ name: "Accept", checked: true }),
-}
-```
-
-Correct:
-
-```ts
-elements: {
-  acceptBox: l.checkbox({ name: "Accept" }),
-}
-// assert state instead of filtering by it:
-expect(elements.acceptBox()).toBeChecked();
-```
-
-`findAllByRole` in the RTL adapter only checks `options.name`. The other
-`ByRoleOptions` (`checked`, `disabled`, `expanded`, `selected`,
-`pressed`) are silently dropped. Known v0.1.0 bug — tracked in
-`ROADMAP.md`.
-
-Source: packages/testing-ui/src/adapters/rtl.ts:304-320 (`findAllByRole`)
-
 ### HIGH Omitting `userEvent`
 
 Wrong:
@@ -197,7 +182,35 @@ Without `userEvent`, `fill()` uses `setNativeValue` and dispatches
 components require real key events. Tests pass or fail asymmetrically
 between adapters until you add `user`.
 
-Source: packages/testing-ui/src/adapters/rtl.ts:111-124 (`UserEventLike` branches)
+Source: packages/testing-ui/src/adapters/rtl.ts (`UserEventLike` branches in `click()`/`fill()`)
+
+### HIGH Missing cleanup between tests (vitest without globals)
+
+Wrong:
+
+```ts
+// vitest.config.ts has no `globals: true`, setup file only imports jest-dom
+import "@testing-library/jest-dom/vitest";
+```
+
+Correct:
+
+```ts
+// tests/setup.ts
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(cleanup);
+```
+
+`@testing-library/react` only auto-registers `cleanup` when a global
+`afterEach` exists. Without it, every `render()` stays in `document.body`.
+Duplicate ids then break label association (`label.control` resolves to the
+first `id` in the document), so `byLabel("Name")` fails from the second test
+on, and role/text queries can find several elements.
+
+Source: packages/example-react/tests/setup.ts
 
 ### HIGH Asserting on the locator instead of the element
 
@@ -236,11 +249,31 @@ Correct:
 l.byText(/submitted/i)
 ```
 
-`byText` / `byLabel` / `byPlaceholder` compare strings with `===`. Only
-RegExp produces partial or case-insensitive matches. Agents trained on
-default `@testing-library/dom` behavior often assume substring.
+`byText` / `byLabel` / `byPlaceholder` use `@testing-library/dom`'s
+default exact matcher. Only RegExp produces partial or case-insensitive
+matches.
 
-Source: packages/testing-ui/src/adapters/rtl.ts:243-247 (`matches()`)
+Source: packages/testing-ui/src/adapters/rtl.ts (`runQueryAll()`)
+
+### MEDIUM Selectors that match several elements
+
+Wrong:
+
+```ts
+submit: l.button(),   // two buttons on the page → get()/click() throw
+```
+
+Correct:
+
+```ts
+submit: l.button({ name: "Send" }),
+// or scope it:
+submit: l.byTestId("footer").button(),
+```
+
+Like `getBy*`, `get()`, `query()`, `find()` and every action throw
+"Found multiple elements" when the locator is ambiguous. Use
+`getAll()`/`findAll()` when several matches are intended.
 
 ### MEDIUM Importing `rtl` from the package root
 
@@ -282,7 +315,7 @@ Default scope is `document.body`. With multiple renders in one test file
 or with portals (Storybook, modals), `document.body` matches outside the
 component under test. Pass `render`'s container explicitly.
 
-Source: packages/testing-ui/src/adapters/rtl.ts:30-35 (default container)
+Source: packages/testing-ui/src/adapters/rtl.ts (`rtl()` default container)
 
 ## See also
 

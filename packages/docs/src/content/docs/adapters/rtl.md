@@ -30,26 +30,60 @@ const locator = rtl(container, user);
 const { elements, actions } = myWidget.from(locator);
 ```
 
+### Cleanup
+
+Unmount between tests. With Vitest **without** `globals: true`, RTL's auto-cleanup is not registered, so add it to your setup file:
+
+```ts
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(cleanup);
+```
+
+Otherwise previous renders stay in the document; duplicate `id`s break label lookups and queries can match several elements.
+
 ## userEvent Integration
 
 When `user` is provided, `click()`, `fill()`, `clear()`, and `selectOption()` delegate to `userEvent` for realistic browser behavior. Without it, the adapter falls back to native DOM methods.
 
-## Built-in Query Engine
+## Async UI: `find()` and `findAll()`
 
-The adapter has its own lightweight DOM query engine — no `@testing-library/dom` dependency. It supports these implicit role mappings:
+Like RTL, synchronous resolution (`get()`, `()`, actions) does not wait. Use `find()` for elements that appear after an async update — it behaves like `findBy*`:
 
-| Role | Selectors |
-| ---- | --------- |
-| `button` | `button`, `[role="button"]`, `input[type="button"\|"submit"]` |
-| `textbox` | `input` (no type / `type="text"`), `textarea`, `[role="textbox"]` |
-| `checkbox` | `input[type="checkbox"]`, `[role="checkbox"]` |
-| `radio` | `input[type="radio"]`, `[role="radio"]` |
-| `link` | `a[href]`, `[role="link"]` |
-| `heading` | `h1`–`h6`, `[role="heading"]` |
-| `list` | `ul`, `ol`, `[role="list"]` |
-| `listitem` | `li`, `[role="listitem"]` |
-| `combobox` | `select`, `[role="combobox"]` |
-| `dialog` | `dialog`, `[role="dialog"]` |
-| `img` | `img[alt]`, `[role="img"]` |
+- resolves once **exactly one** element matches,
+- rejects if **none** or **more than one** match after the timeout (default 1000ms).
 
-Other roles fall back to `[role="..."]`. Name matching checks `aria-label` then text content.
+`findAll()` behaves like `findAllBy*` (resolves once at least one matches).
+
+```ts
+await actions.submitForm("Alice", "Hello!");
+expect(await elements.confirmation.find()).toHaveTextContent("Sent");
+await elements.rows.findAll({ timeout: 3000 });
+```
+
+Waiting uses `waitFor` from `@testing-library/dom`, so it is wrapped in `act()` and works with fake timers.
+
+## Query Engine
+
+Queries are delegated to `@testing-library/dom` (`queryAllByRole`, `queryAllByLabelText`, `queryAllByText`, `queryAllByPlaceholderText`, `queryAllByTestId`), so matching is identical to React Testing Library:
+
+- full accessible-name computation (`aria-labelledby`, `alt`, nested content…), hidden elements excluded from role queries,
+- every implicit ARIA role, and the `checked`, `expanded`, `selected`, `pressed` role filters (`disabled` matches `:disabled` or an `aria-disabled="true"` ancestor),
+- text matching on an element's own text with whitespace normalization; strings are exact, use a `RegExp` for partial matches,
+- `configure({ testIdAttribute })` is honoured.
+
+`@testing-library/dom` is a peer dependency of `@testing-library/react` and is required by this adapter (optional for Playwright-only users).
+
+## Resolution semantics
+
+| Method | RTL equivalent | No match | Several matches |
+| ------ | -------------- | -------- | --------------- |
+| `get()` / `()` | `getBy*` | throws | throws |
+| `getAll()` | `getAllBy*` | throws | ok |
+| `query()` | `queryBy*` | `null` | throws |
+| `queryAll()` | `queryAllBy*` | `[]` | ok |
+| `find()` | `findBy*` | rejects after timeout | rejects after timeout |
+| `findAll()` | `findAllBy*` | rejects after timeout | ok |
+
+Actions (`click()`, `fill()`, …) resolve with `get()`, so they throw on ambiguous matches instead of silently using the first one. Errors are `TestingLibraryElementError`s that include a DOM snapshot, like RTL.

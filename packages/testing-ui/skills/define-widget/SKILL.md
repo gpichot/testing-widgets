@@ -210,12 +210,12 @@ elements: {
 ```
 
 `byTestId` is a last resort — it disconnects tests from the accessibility
-tree. The library's RTL adapter maps roles to selectors at
-`packages/testing-ui/src/adapters/rtl.ts:290-302`; prefer role+name, fall
+tree. The library's RTL adapter resolves roles through
+`@testing-library/dom`'s accessibility-tree queries; prefer role+name, fall
 back to label for form fields, only use testId for opaque containers
 with no semantic anchor.
 
-Source: packages/testing-ui/src/adapters/rtl.ts (implicitRoles)
+Source: packages/testing-ui/src/adapters/rtl.ts (`runQueryAll()`)
 
 ### HIGH Resolving elements at definition time
 

@@ -51,8 +51,9 @@ it("submits the form and shows confirmation", async () => {
   const { elements, actions } = setup();
   await actions.submitForm("Alice", "Hello!");
 
-  expect(elements.thankYou("Alice").get()).toHaveTextContent("Thank you, Alice!");
-  expect(elements.confirmation()).toHaveTextContent("Your message has been sent.");
+  // The confirmation renders asynchronously: find() waits like RTL findBy*.
+  expect(await elements.thankYou("Alice").find()).toHaveTextContent("Thank you, Alice!");
+  expect(await elements.confirmation.find()).toHaveTextContent("Your message has been sent.");
 });
 ```
 

@@ -18,7 +18,8 @@ export function ContactForm() {
 		<form
 			onSubmit={(e) => {
 				e.preventDefault();
-				setSubmitted(true);
+				// Simulate a network round-trip so the confirmation renders async.
+				setTimeout(() => setSubmitted(true), 50);
 			}}
 		>
 			<h1>Contact us</h1>

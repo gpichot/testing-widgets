@@ -16,9 +16,12 @@
 import { asCallable } from "../callable.js";
 import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
 
+/** Subset of Playwright's `getByRole` options shared with {@link ByRoleOptions}. */
+export type PwByRoleOptions = ByRoleOptions;
+
 /** Minimal Playwright locator surface we depend on (no compile-time dep). */
 export interface PwLocatable {
-	getByRole(role: string, options?: { name?: string | RegExp }): PwLocatable;
+	getByRole(role: string, options?: PwByRoleOptions): PwLocatable;
 	getByLabel(text: string | RegExp): PwLocatable;
 	getByPlaceholder(text: string | RegExp): PwLocatable;
 	getByText(text: string | RegExp): PwLocatable;
@@ -44,7 +47,7 @@ export interface PwLocatable {
  * preserve the concrete `Locator` type through the adapter.
  */
 export interface PwPageLike<L extends PwLocatable = PwLocatable> {
-	getByRole(role: string, options?: { name?: string | RegExp }): L;
+	getByRole(role: string, options?: PwByRoleOptions): L;
 	getByLabel(text: string | RegExp): L;
 	getByPlaceholder(text: string | RegExp): L;
 	getByText(text: string | RegExp): L;
@@ -71,7 +74,7 @@ class PwAdapter<L extends PwLocatable> implements LocatorMethods<L> {
 			new PwAdapter<L>(
 				this.pw.getByRole(
 					role,
-					options ? { name: options.name } : undefined,
+					options ? stripUndefined(options) : undefined,
 				) as L,
 			),
 		);
@@ -118,8 +121,14 @@ class PwAdapter<L extends PwLocatable> implements LocatorMethods<L> {
 		);
 	}
 
+	/** Playwright locators are lazy and auto-wait on use — returns the locator. */
 	async find(): Promise<L> {
 		return this.pw as L;
+	}
+
+	/** Snapshot of current matches via Playwright's `locator.all()` (no waiting). */
+	async findAll(): Promise<L[]> {
+		return (await this.locatable.all()) as L[];
 	}
 
 	click() {
@@ -159,4 +168,10 @@ class PwAdapter<L extends PwLocatable> implements LocatorMethods<L> {
 	isChecked() {
 		return this.locatable.isChecked();
 	}
+}
+
+function stripUndefined<T extends object>(obj: T): Partial<T> {
+	return Object.fromEntries(
+		Object.entries(obj).filter(([, v]) => v !== undefined),
+	) as Partial<T>;
 }

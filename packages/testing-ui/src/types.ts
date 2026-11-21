@@ -22,8 +22,17 @@ export interface LocatorMethods<T = unknown> {
 	query(): T | null;
 	/** Resolve all matching native elements/locators (empty array if none). */
 	queryAll(): T[];
-	/** Async resolution — waits for the element to appear. */
-	find(): Promise<T>;
+	/**
+	 * Async resolution, mirroring RTL `findBy*`: resolves once exactly one
+	 * element matches; rejects if none (or more than one) match after the
+	 * timeout (1000ms by default).
+	 */
+	find(options?: FindOptions): Promise<T>;
+	/**
+	 * Async resolution of all matches, mirroring RTL `findAllBy*`: resolves
+	 * once at least one element matches; rejects if none after the timeout.
+	 */
+	findAll(options?: FindOptions): Promise<T[]>;
 
 	// --- Actions ---
 	click(): Promise<void>;
@@ -58,6 +67,13 @@ export interface LocatorMethods<T = unknown> {
 export interface Locator<T = unknown> extends LocatorMethods<T> {
 	/** Shorthand for get(). */
 	(): T;
+}
+
+export interface FindOptions {
+	/** Max time to wait in ms. Defaults to 1000. */
+	timeout?: number;
+	/** Polling interval in ms. Defaults to 50. */
+	interval?: number;
 }
 
 export interface ByRoleOptions {
