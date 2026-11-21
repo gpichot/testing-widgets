@@ -184,6 +184,34 @@ between adapters until you add `user`.
 
 Source: packages/testing-ui/src/adapters/rtl.ts (`UserEventLike` branches in `click()`/`fill()`)
 
+### HIGH Missing cleanup between tests (vitest without globals)
+
+Wrong:
+
+```ts
+// vitest.config.ts has no `globals: true`, setup file only imports jest-dom
+import "@testing-library/jest-dom/vitest";
+```
+
+Correct:
+
+```ts
+// tests/setup.ts
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(cleanup);
+```
+
+`@testing-library/react` only auto-registers `cleanup` when a global
+`afterEach` exists. Without it, every `render()` stays in `document.body`.
+Duplicate ids then break label association (`label.control` resolves to the
+first `id` in the document), so `byLabel("Name")` fails from the second test
+on, and role/text queries can find several elements.
+
+Source: packages/example-react/tests/setup.ts
+
 ### HIGH Asserting on the locator instead of the element
 
 Wrong:

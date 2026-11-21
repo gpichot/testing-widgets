@@ -30,6 +30,19 @@ const locator = rtl(container, user);
 const { elements, actions } = myWidget.from(locator);
 ```
 
+### Cleanup
+
+Unmount between tests. With Vitest **without** `globals: true`, RTL's auto-cleanup is not registered, so add it to your setup file:
+
+```ts
+import { cleanup } from "@testing-library/react";
+import { afterEach } from "vitest";
+
+afterEach(cleanup);
+```
+
+Otherwise previous renders stay in the document; duplicate `id`s break label lookups and queries can match several elements.
+
 ## userEvent Integration
 
 When `user` is provided, `click()`, `fill()`, `clear()`, and `selectOption()` delegate to `userEvent` for realistic browser behavior. Without it, the adapter falls back to native DOM methods.
