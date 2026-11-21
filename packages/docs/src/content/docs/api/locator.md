@@ -27,9 +27,9 @@ locator.getByTestId("hero")
 
 | Method | Returns | Throws? |
 | ------ | ------- | ------- |
-| `get()` | element | yes |
+| `get()` | element | yes (none or several, RTL) |
 | `getAll()` | element[] | yes (if none) |
-| `query()` | element \| null | no |
+| `query()` | element \| null | only if several match (RTL) |
 | `queryAll()` | element[] | no |
 | `find(options?)` | Promise\<element\> | rejects if none or more than one match after the timeout |
 | `findAll(options?)` | Promise\<element[]\> | rejects if none match after the timeout |

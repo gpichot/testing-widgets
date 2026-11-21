@@ -8,8 +8,7 @@ description: >
   resolution semantics where get()/query()/find() all return the
   Playwright locator synchronously, replacing getAll()/queryAll()
   (which throw) with await locator.get().all(), or importing from
-  testing-widgets/adapters/playwright. Covers the v0.1.0 caveat that
-  ByRoleOptions other than `name` are silently dropped.
+  testing-widgets/adapters/playwright.
 type: framework
 library: testing-widgets
 framework: playwright
@@ -150,35 +149,6 @@ selector duplication the widget exists to remove. If a label or button
 text changes, you should be editing the widget definition only.
 
 Source: maintainer-defined antipattern; packages/example-react/e2e/contact-form.spec.ts (canonical pattern)
-
-### CRITICAL `ByRoleOptions` other than `name` are silently dropped
-
-Wrong:
-
-```ts
-elements: {
-  // Type accepts `checked`, but the Playwright adapter forwards only
-  // `name`. At runtime this matches every checkbox named "Accept".
-  accepted: l.checkbox({ name: "Accept", checked: true }),
-}
-```
-
-Correct:
-
-```ts
-elements: {
-  acceptBox: l.checkbox({ name: "Accept" }),
-}
-// assert state instead:
-await expect(elements.acceptBox.get()).toBeChecked();
-```
-
-`PwAdapter.getByRole` forwards only `{ name: options.name }`. The other
-`ByRoleOptions` (`checked`, `disabled`, `expanded`, `selected`,
-`pressed`) are silently ignored. Known v0.1.0 bug — tracked in
-`ROADMAP.md`.
-
-Source: packages/testing-ui/src/adapters/playwright.ts:69-78 (`getByRole`)
 
 ### HIGH Calling `getAll()` or `queryAll()` on a Playwright locator
 

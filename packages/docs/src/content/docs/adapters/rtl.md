@@ -49,24 +49,28 @@ expect(await elements.confirmation.find()).toHaveTextContent("Sent");
 await elements.rows.findAll({ timeout: 3000 });
 ```
 
-Waiting uses `waitFor` from `@testing-library/dom` when installed (it is a peer of `@testing-library/react`), so it is wrapped in `act()` and works with fake timers. Without it, a built-in MutationObserver + polling fallback is used.
+Waiting uses `waitFor` from `@testing-library/dom`, so it is wrapped in `act()` and works with fake timers.
 
-## Built-in Query Engine
+## Query Engine
 
-The adapter has its own lightweight DOM query engine — no `@testing-library/dom` dependency. It supports these implicit role mappings:
+Queries are delegated to `@testing-library/dom` (`queryAllByRole`, `queryAllByLabelText`, `queryAllByText`, `queryAllByPlaceholderText`, `queryAllByTestId`), so matching is identical to React Testing Library:
 
-| Role | Selectors |
-| ---- | --------- |
-| `button` | `button`, `[role="button"]`, `input[type="button"\|"submit"]` |
-| `textbox` | `input` (no type / `type="text"`), `textarea`, `[role="textbox"]` |
-| `checkbox` | `input[type="checkbox"]`, `[role="checkbox"]` |
-| `radio` | `input[type="radio"]`, `[role="radio"]` |
-| `link` | `a[href]`, `[role="link"]` |
-| `heading` | `h1`–`h6`, `[role="heading"]` |
-| `list` | `ul`, `ol`, `[role="list"]` |
-| `listitem` | `li`, `[role="listitem"]` |
-| `combobox` | `select`, `[role="combobox"]` |
-| `dialog` | `dialog`, `[role="dialog"]` |
-| `img` | `img[alt]`, `[role="img"]` |
+- full accessible-name computation (`aria-labelledby`, `alt`, nested content…), hidden elements excluded from role queries,
+- every implicit ARIA role, and the `checked`, `expanded`, `selected`, `pressed` role filters (`disabled` matches `:disabled` or an `aria-disabled="true"` ancestor),
+- text matching on an element's own text with whitespace normalization; strings are exact, use a `RegExp` for partial matches,
+- `configure({ testIdAttribute })` is honoured.
 
-Other roles fall back to `[role="..."]`. Name matching checks `aria-label` then text content.
+`@testing-library/dom` is a peer dependency of `@testing-library/react` and is required by this adapter (optional for Playwright-only users).
+
+## Resolution semantics
+
+| Method | RTL equivalent | No match | Several matches |
+| ------ | -------------- | -------- | --------------- |
+| `get()` / `()` | `getBy*` | throws | throws |
+| `getAll()` | `getAllBy*` | throws | ok |
+| `query()` | `queryBy*` | `null` | throws |
+| `queryAll()` | `queryAllBy*` | `[]` | ok |
+| `find()` | `findBy*` | rejects after timeout | rejects after timeout |
+| `findAll()` | `findAllBy*` | rejects after timeout | ok |
+
+Actions (`click()`, `fill()`, …) resolve with `get()`, so they throw on ambiguous matches instead of silently using the first one. Errors are `TestingLibraryElementError`s that include a DOM snapshot, like RTL.

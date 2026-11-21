@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { rtl } from "../adapters/rtl.js";
-import { pollWaitFor } from "../adapters/wait.js";
 import { widget } from "../widget.js";
 
 function insertLater(
@@ -82,32 +81,5 @@ describe("rtl adapter find() / findAll()", () => {
 		insertLater("<h2>Done</h2>");
 		expect(await elements.done.find()).toHaveTextContent("Done");
 		expect(await elements.done.findAll()).toHaveLength(1);
-	});
-});
-
-describe("pollWaitFor (fallback without @testing-library/dom)", () => {
-	afterEach(() => {
-		document.body.innerHTML = "";
-	});
-
-	it("resolves when the callback stops throwing after a DOM change", async () => {
-		insertLater("<span>ok</span>", 50);
-		const el = await pollWaitFor(() => {
-			const s = document.querySelector("span");
-			if (!s) throw new Error("missing");
-			return s;
-		});
-		expect(el.textContent).toBe("ok");
-	});
-
-	it("rejects with the last error after the timeout", async () => {
-		await expect(
-			pollWaitFor(
-				() => {
-					throw new Error("still missing");
-				},
-				{ timeout: 80 },
-			),
-		).rejects.toThrow("still missing");
 	});
 });

@@ -1,6 +1,19 @@
 /**
  * React Testing Library adapter.
  *
+ * Queries are delegated to `@testing-library/dom` (`queryAllBy*`), so role,
+ * accessible-name, label and text matching behave exactly like RTL.
+ * Resolution follows RTL semantics:
+ *
+ * | method      | RTL equivalent | none   | many   |
+ * | ----------- | -------------- | ------ | ------ |
+ * | `get()`     | `getBy*`       | throws | throws |
+ * | `getAll()`  | `getAllBy*`    | throws | ok     |
+ * | `query()`   | `queryBy*`     | null   | throws |
+ * | `queryAll()`| `queryAllBy*`  | []     | ok     |
+ * | `find()`    | `findBy*`      | waits, then rejects | waits, then rejects |
+ * | `findAll()` | `findAllBy*`   | waits, then rejects | ok |
+ *
  * @example
  * ```ts
  * import { rtl } from "testing-widgets/adapters/rtl";
@@ -13,6 +26,16 @@
  * ```
  */
 
+import {
+	type ByRoleOptions as DomByRoleOptions,
+	getConfig,
+	queryAllByLabelText,
+	queryAllByPlaceholderText,
+	queryAllByRole,
+	queryAllByTestId,
+	queryAllByText,
+	waitFor,
+} from "@testing-library/dom";
 import { asCallable } from "../callable.js";
 import type {
 	ByRoleOptions,
@@ -20,7 +43,6 @@ import type {
 	Locator,
 	LocatorMethods,
 } from "../types.js";
-import { waitUntil } from "./wait.js";
 
 /** Minimal userEvent interface — avoids compile-time dep on @testing-library/user-event */
 interface UserEventLike {
@@ -37,7 +59,7 @@ export function rtl(
 	container: HTMLElement = document.body,
 	user?: UserEventLike,
 ): Locator<HTMLElement> {
-	return asCallable(new RtlLocator(() => container, user));
+	return asCallable(new RtlLocator(container, () => [container], user));
 }
 
 // ---------------------------------------------------------------------------
@@ -49,16 +71,29 @@ type Query =
 	| { kind: "text"; text: string | RegExp }
 	| { kind: "testid"; id: string };
 
-class RtlLocator implements LocatorMethods<HTMLElement> {
+/** Thrown internally; converted to a TestingLibraryElementError at the API boundary. */
+class QueryError extends Error {
 	constructor(
-		private resolve: () => HTMLElement,
-		private user?: UserEventLike,
-		query?: Query,
-		parentResolve?: () => HTMLElement,
+		message: string,
+		readonly reason: "not-found" | "multiple",
 	) {
-		this.query_ = query;
-		this.parentResolve = parentResolve;
+		super(message);
 	}
+}
+
+class RtlLocator implements LocatorMethods<HTMLElement> {
+	/**
+	 * @param container - root passed to `rtl()`, used for error output.
+	 * @param candidates - returns every element matching this locator's chain.
+	 *   Parents in the chain are resolved strictly (exactly one), like
+	 *   `within(getBy*(...))`.
+	 */
+	constructor(
+		private container: HTMLElement,
+		private candidates: () => HTMLElement[],
+		private user?: UserEventLike,
+		private description = "container",
+	) {}
 
 	// --- Queries (lazy) ---------------------------------------------------
 
@@ -85,53 +120,43 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	// --- Resolution -------------------------------------------------------
 
 	get(): HTMLElement {
-		return this.resolve();
+		return this.sync(() => this.strict());
 	}
 
 	getAll(): HTMLElement[] {
-		return this.resolveAll();
+		return this.sync(() => this.atLeastOne());
 	}
 
 	query(): HTMLElement | null {
-		try {
-			return this.resolve();
-		} catch {
-			return null;
-		}
+		return this.sync(() => {
+			const results = this.candidatesOrEmpty();
+			if (results.length > 1) this.throwMultiple(results.length);
+			return results[0] ?? null;
+		});
 	}
 
 	queryAll(): HTMLElement[] {
-		try {
-			return this.resolveAll();
-		} catch {
-			return [];
-		}
+		return this.sync(() => this.candidatesOrEmpty());
 	}
 
-	/** Mirrors RTL `findBy*`: waits for exactly one match (default 1000ms). */
 	find(options?: FindOptions): Promise<HTMLElement> {
-		return waitUntil(() => this.resolveStrict(), options);
+		return this.wait(() => this.strict(), options);
 	}
 
-	/** Mirrors RTL `findAllBy*`: waits for at least one match (default 1000ms). */
 	findAll(options?: FindOptions): Promise<HTMLElement[]> {
-		return waitUntil(() => {
-			const results = this.resolveAll();
-			if (results.length === 0 && this.query_) throwNotFound(this.query_);
-			return results;
-		}, options);
+		return this.wait(() => this.atLeastOne(), options);
 	}
 
 	// --- Actions ----------------------------------------------------------
 
 	async click(): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (this.user) return this.user.click(el);
 		el.click();
 	}
 
 	async fill(value: string): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (this.user) {
 			await this.user.clear(el);
 			return this.user.type(el, value);
@@ -140,21 +165,21 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	}
 
 	async check(): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (el instanceof HTMLInputElement && !el.checked) {
 			await this.click();
 		}
 	}
 
 	async uncheck(): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (el instanceof HTMLInputElement && el.checked) {
 			await this.click();
 		}
 	}
 
 	async selectOption(value: string | string[]): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (!(el instanceof HTMLSelectElement)) {
 			throw new TypeError(
 				`selectOption requires a <select> element, got <${el.tagName.toLowerCase()}>`,
@@ -169,7 +194,7 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	}
 
 	async clear(): Promise<void> {
-		const el = this.resolve();
+		const el = this.get();
 		if (this.user) return this.user.clear(el);
 		setNativeValue(el, "");
 	}
@@ -177,19 +202,20 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	// --- State ------------------------------------------------------------
 
 	async textContent(): Promise<string | null> {
-		return this.resolve().textContent;
+		return this.get().textContent;
 	}
 
 	async getAttribute(name: string): Promise<string | null> {
-		return this.resolve().getAttribute(name);
+		return this.get().getAttribute(name);
 	}
 
 	async inputValue(): Promise<string> {
-		const el = this.resolve();
-		if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-			return el.value;
-		}
-		if (el instanceof HTMLSelectElement) {
+		const el = this.get();
+		if (
+			el instanceof HTMLInputElement ||
+			el instanceof HTMLTextAreaElement ||
+			el instanceof HTMLSelectElement
+		) {
 			return el.value;
 		}
 		throw new TypeError(
@@ -198,7 +224,7 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	}
 
 	async isVisible(): Promise<boolean> {
-		const el = this.resolve();
+		const el = this.get();
 		const style = window.getComputedStyle(el);
 		return (
 			style.display !== "none" &&
@@ -208,24 +234,15 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	}
 
 	async isEnabled(): Promise<boolean> {
-		const el = this.resolve();
-		if (
-			el instanceof HTMLInputElement ||
-			el instanceof HTMLButtonElement ||
-			el instanceof HTMLSelectElement ||
-			el instanceof HTMLTextAreaElement
-		) {
-			return !el.disabled;
-		}
-		return true;
+		return !isDisabled(this.get());
 	}
 
 	async isChecked(): Promise<boolean> {
-		const el = this.resolve();
+		const el = this.get();
 		if (el instanceof HTMLInputElement) {
 			return el.checked;
 		}
-		return false;
+		return el.getAttribute("aria-checked") === "true";
 	}
 
 	// --- Internal ---------------------------------------------------------
@@ -233,71 +250,109 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 	private lazy(query: Query): Locator<HTMLElement> {
 		return asCallable(
 			new RtlLocator(
-				() => runQuery(this.resolve(), query),
+				this.container,
+				() => runQueryAll(this.strict(), query),
 				this.user,
-				query,
-				this.resolve,
+				describeQuery(query),
 			),
 		);
 	}
 
-	/** Like resolve(), but throws when more than one element matches. */
-	private resolveStrict(): HTMLElement {
-		if (!this.query_ || !this.parentResolve) return this.resolve();
-		const results = runQueryAll(this.parentResolve(), this.query_);
-		if (results.length === 0) throwNotFound(this.query_);
-		if (results.length > 1) throwMultiple(this.query_, results.length);
+	/** Exactly one match (getBy / findBy). */
+	private strict(): HTMLElement {
+		const results = this.atLeastOne();
+		if (results.length > 1) this.throwMultiple(results.length);
 		return results[0];
 	}
 
-	private resolveAll(): HTMLElement[] {
-		if (!this.query_ || !this.parentResolve) {
-			return [this.resolve()];
+	/** One or more matches (getAllBy / findAllBy). */
+	private atLeastOne(): HTMLElement[] {
+		const results = this.candidates();
+		if (results.length === 0) {
+			throw new QueryError(
+				`Unable to find element with ${this.description}`,
+				"not-found",
+			);
 		}
-		return runQueryAll(this.parentResolve(), this.query_);
+		return results;
 	}
 
-	private query_?: Query;
-	private parentResolve?: () => HTMLElement;
+	/** Like candidates(), but a missing parent yields [] (queryBy semantics). */
+	private candidatesOrEmpty(): HTMLElement[] {
+		try {
+			return this.candidates();
+		} catch (error) {
+			if (error instanceof QueryError && error.reason === "not-found") {
+				return [];
+			}
+			throw error;
+		}
+	}
+
+	private throwMultiple(count: number): never {
+		throw new QueryError(
+			`Found multiple elements (${count}) with ${this.description}. Use getAll()/findAll() to match more than one.`,
+			"multiple",
+		);
+	}
+
+	/** Run synchronously; decorate query errors like RTL (with a DOM snapshot). */
+	private sync<R>(fn: () => R): R {
+		try {
+			return fn();
+		} catch (error) {
+			if (error instanceof QueryError) {
+				throw getConfig().getElementError(error.message, this.container);
+			}
+			throw error;
+		}
+	}
+
+	/** Retry until success; RTL's waitFor adds the DOM snapshot on timeout. */
+	private wait<R>(fn: () => R, options?: FindOptions): Promise<R> {
+		return waitFor(fn, {
+			container: this.container,
+			timeout: options?.timeout ?? 1000,
+			interval: options?.interval ?? 50,
+		});
+	}
 }
 
 // ---------------------------------------------------------------------------
-// Minimal DOM query helpers (no @testing-library/dom dependency)
+// Query execution — delegated to @testing-library/dom
 // ---------------------------------------------------------------------------
-
-function matches(actual: string, expected: string | RegExp): boolean {
-	return typeof expected === "string"
-		? actual === expected
-		: expected.test(actual);
-}
-
-function runQuery(root: HTMLElement, q: Query): HTMLElement {
-	const results = runQueryAll(root, q);
-	if (results.length === 0) {
-		throwNotFound(q);
-	}
-	return results[0];
-}
 
 function runQueryAll(root: HTMLElement, q: Query): HTMLElement[] {
 	switch (q.kind) {
-		case "role":
-			return findAllByRole(root, q.role, q.options);
+		case "role": {
+			const { disabled, ...options } = q.options ?? {};
+			const results = queryAllByRole(root, q.role, options as DomByRoleOptions);
+			// @testing-library/dom has no `disabled` filter; apply it here.
+			return disabled === undefined
+				? results
+				: results.filter((el) => isDisabled(el) === disabled);
+		}
 		case "label":
-			return findAllByLabel(root, q.text);
+			return queryAllByLabelText(root, q.text);
 		case "placeholder":
-			return findAllByAttr(root, "placeholder", q.text);
+			return queryAllByPlaceholderText(root, q.text);
 		case "text":
-			return findAllByText(root, q.text);
+			return queryAllByText(root, q.text);
 		case "testid":
-			return findAllByAttr(root, "data-testid", q.id);
+			return queryAllByTestId(root, q.id);
 	}
 }
 
 function describeQuery(q: Query): string {
 	switch (q.kind) {
-		case "role":
-			return `role "${q.role}"${q.options?.name ? ` and name "${q.options.name}"` : ""}`;
+		case "role": {
+			const { name, ...rest } = q.options ?? {};
+			const extra = Object.entries(rest)
+				.filter(([, v]) => v !== undefined)
+				.map(([k, v]) => ` and ${k}=${v}`)
+				.join("");
+			return `role "${q.role}"${name !== undefined ? ` and name "${name}"` : ""}${extra}`;
+		}
 		case "label":
 			return `label "${q.text}"`;
 		case "text":
@@ -305,99 +360,14 @@ function describeQuery(q: Query): string {
 		case "placeholder":
 			return `placeholder "${q.text}"`;
 		case "testid":
-			return `data-testid "${q.id}"`;
+			return `${getConfig().testIdAttribute} "${q.id}"`;
 	}
 }
 
-function throwNotFound(q: Query): never {
-	throw new Error(`Unable to find element with ${describeQuery(q)}`);
-}
-
-function throwMultiple(q: Query, count: number): never {
-	throw new Error(
-		`Found multiple elements (${count}) with ${describeQuery(q)}. Use findAll() to match more than one.`,
+function isDisabled(el: HTMLElement): boolean {
+	return (
+		el.matches(":disabled") || el.closest('[aria-disabled="true"]') !== null
 	);
-}
-
-// Map common implicit roles to selectors
-const implicitRoles: Record<string, string> = {
-	button: 'button, [role="button"], input[type="button"], input[type="submit"]',
-	textbox: 'input:not([type]), input[type="text"], textarea, [role="textbox"]',
-	checkbox: 'input[type="checkbox"], [role="checkbox"]',
-	radio: 'input[type="radio"], [role="radio"]',
-	link: 'a[href], [role="link"]',
-	heading: "h1, h2, h3, h4, h5, h6, [role=heading]",
-	list: 'ul, ol, [role="list"]',
-	listitem: 'li, [role="listitem"]',
-	combobox: 'select, [role="combobox"]',
-	dialog: 'dialog, [role="dialog"]',
-	img: 'img[alt], [role="img"]',
-};
-
-function findAllByRole(
-	root: HTMLElement,
-	role: string,
-	options?: ByRoleOptions,
-): HTMLElement[] {
-	const selector = implicitRoles[role] ?? `[role="${role}"]`;
-	const results: HTMLElement[] = [];
-	for (const el of Array.from(root.querySelectorAll<HTMLElement>(selector))) {
-		if (options?.name !== undefined) {
-			const accessible =
-				el.getAttribute("aria-label") ?? el.textContent?.trim() ?? "";
-			if (!matches(accessible, options.name)) continue;
-		}
-		results.push(el);
-	}
-	return results;
-}
-
-function findAllByLabel(
-	root: HTMLElement,
-	text: string | RegExp,
-): HTMLElement[] {
-	const results: HTMLElement[] = [];
-	for (const label of Array.from(root.querySelectorAll("label"))) {
-		if (!matches(label.textContent?.trim() ?? "", text)) continue;
-		const forId = label.getAttribute("for");
-		if (forId) {
-			const el = root.querySelector<HTMLElement>(`#${forId}`);
-			if (el) results.push(el);
-		}
-		const input = label.querySelector<HTMLElement>("input, select, textarea");
-		if (input) results.push(input);
-	}
-	for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
-		const aria = el.getAttribute("aria-label");
-		if (aria && matches(aria, text) && !results.includes(el)) results.push(el);
-	}
-	return results;
-}
-
-function findAllByText(
-	root: HTMLElement,
-	text: string | RegExp,
-): HTMLElement[] {
-	const results: HTMLElement[] = [];
-	for (const el of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
-		if (el.children.length === 0 && matches(el.textContent?.trim() ?? "", text))
-			results.push(el);
-	}
-	return results;
-}
-
-function findAllByAttr(
-	root: HTMLElement,
-	attr: string,
-	value: string | RegExp,
-): HTMLElement[] {
-	const results: HTMLElement[] = [];
-	for (const el of Array.from(
-		root.querySelectorAll<HTMLElement>(`[${attr}]`),
-	)) {
-		if (matches(el.getAttribute(attr) ?? "", value)) results.push(el);
-	}
-	return results;
 }
 
 function setNativeValue(el: HTMLElement, value: string): void {
