@@ -1,5 +1,10 @@
 import { asCallable } from "./callable.js";
-import type { ByRoleOptions, Locator, LocatorMethods } from "./types.js";
+import type {
+	ByRoleOptions,
+	FindOptions,
+	Locator,
+	LocatorMethods,
+} from "./types.js";
 
 /**
  * Extended locator with role shortcuts and concise aliases.
@@ -81,8 +86,11 @@ class LocatorProxy<T> implements LocatorMethods<T> {
 	queryAll() {
 		return this.base.queryAll();
 	}
-	find() {
-		return this.base.find();
+	find(options?: FindOptions) {
+		return this.base.find(options);
+	}
+	findAll(options?: FindOptions) {
+		return this.base.findAll(options);
 	}
 
 	click() {

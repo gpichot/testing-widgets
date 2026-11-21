@@ -27,6 +27,7 @@ function mockLocator(overrides: Partial<LocatorMethods> = {}) {
 		query: vi.fn(() => null),
 		queryAll: vi.fn(() => []),
 		find: vi.fn(async () => null),
+		findAll: vi.fn(async () => []),
 	};
 	const loc = asCallable(Object.assign(base, overrides));
 	return loc;

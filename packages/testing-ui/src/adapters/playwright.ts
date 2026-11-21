@@ -118,8 +118,14 @@ class PwAdapter<L extends PwLocatable> implements LocatorMethods<L> {
 		);
 	}
 
+	/** Playwright locators are lazy and auto-wait on use — returns the locator. */
 	async find(): Promise<L> {
 		return this.pw as L;
+	}
+
+	/** Snapshot of current matches via Playwright's `locator.all()` (no waiting). */
+	async findAll(): Promise<L[]> {
+		return (await this.locatable.all()) as L[];
 	}
 
 	click() {

@@ -88,6 +88,9 @@ importers:
       '@tanstack/intent':
         specifier: 0.0.41
         version: 0.0.41
+      '@testing-library/dom':
+        specifier: ^10.0.0
+        version: 10.4.1
       '@testing-library/jest-dom':
         specifier: ^6.0.0
         version: 6.9.1

@@ -14,7 +14,13 @@
  */
 
 import { asCallable } from "../callable.js";
-import type { ByRoleOptions, Locator, LocatorMethods } from "../types.js";
+import type {
+	ByRoleOptions,
+	FindOptions,
+	Locator,
+	LocatorMethods,
+} from "../types.js";
+import { waitUntil } from "./wait.js";
 
 /** Minimal userEvent interface — avoids compile-time dep on @testing-library/user-event */
 interface UserEventLike {
@@ -102,8 +108,18 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 		}
 	}
 
-	async find(): Promise<HTMLElement> {
-		return this.resolve();
+	/** Mirrors RTL `findBy*`: waits for exactly one match (default 1000ms). */
+	find(options?: FindOptions): Promise<HTMLElement> {
+		return waitUntil(() => this.resolveStrict(), options);
+	}
+
+	/** Mirrors RTL `findAllBy*`: waits for at least one match (default 1000ms). */
+	findAll(options?: FindOptions): Promise<HTMLElement[]> {
+		return waitUntil(() => {
+			const results = this.resolveAll();
+			if (results.length === 0 && this.query_) throwNotFound(this.query_);
+			return results;
+		}, options);
 	}
 
 	// --- Actions ----------------------------------------------------------
@@ -225,6 +241,15 @@ class RtlLocator implements LocatorMethods<HTMLElement> {
 		);
 	}
 
+	/** Like resolve(), but throws when more than one element matches. */
+	private resolveStrict(): HTMLElement {
+		if (!this.query_ || !this.parentResolve) return this.resolve();
+		const results = runQueryAll(this.parentResolve(), this.query_);
+		if (results.length === 0) throwNotFound(this.query_);
+		if (results.length > 1) throwMultiple(this.query_, results.length);
+		return results[0];
+	}
+
 	private resolveAll(): HTMLElement[] {
 		if (!this.query_ || !this.parentResolve) {
 			return [this.resolve()];
@@ -269,21 +294,29 @@ function runQueryAll(root: HTMLElement, q: Query): HTMLElement[] {
 	}
 }
 
-function throwNotFound(q: Query): never {
+function describeQuery(q: Query): string {
 	switch (q.kind) {
 		case "role":
-			throw new Error(
-				`Unable to find element with role "${q.role}"${q.options?.name ? ` and name "${q.options.name}"` : ""}`,
-			);
+			return `role "${q.role}"${q.options?.name ? ` and name "${q.options.name}"` : ""}`;
 		case "label":
-			throw new Error(`Unable to find element with label "${q.text}"`);
+			return `label "${q.text}"`;
 		case "text":
-			throw new Error(`Unable to find element with text "${q.text}"`);
+			return `text "${q.text}"`;
 		case "placeholder":
-			throw new Error(`Unable to find element with placeholder "${q.text}"`);
+			return `placeholder "${q.text}"`;
 		case "testid":
-			throw new Error(`Unable to find element with data-testid "${q.id}"`);
+			return `data-testid "${q.id}"`;
 	}
+}
+
+function throwNotFound(q: Query): never {
+	throw new Error(`Unable to find element with ${describeQuery(q)}`);
+}
+
+function throwMultiple(q: Query, count: number): never {
+	throw new Error(
+		`Found multiple elements (${count}) with ${describeQuery(q)}. Use findAll() to match more than one.`,
+	);
 }
 
 // Map common implicit roles to selectors

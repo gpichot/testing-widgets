@@ -34,6 +34,23 @@ const { elements, actions } = myWidget.from(locator);
 
 When `user` is provided, `click()`, `fill()`, `clear()`, and `selectOption()` delegate to `userEvent` for realistic browser behavior. Without it, the adapter falls back to native DOM methods.
 
+## Async UI: `find()` and `findAll()`
+
+Like RTL, synchronous resolution (`get()`, `()`, actions) does not wait. Use `find()` for elements that appear after an async update — it behaves like `findBy*`:
+
+- resolves once **exactly one** element matches,
+- rejects if **none** or **more than one** match after the timeout (default 1000ms).
+
+`findAll()` behaves like `findAllBy*` (resolves once at least one matches).
+
+```ts
+await actions.submitForm("Alice", "Hello!");
+expect(await elements.confirmation.find()).toHaveTextContent("Sent");
+await elements.rows.findAll({ timeout: 3000 });
+```
+
+Waiting uses `waitFor` from `@testing-library/dom` when installed (it is a peer of `@testing-library/react`), so it is wrapped in `act()` and works with fake timers. Without it, a built-in MutationObserver + polling fallback is used.
+
 ## Built-in Query Engine
 
 The adapter has its own lightweight DOM query engine — no `@testing-library/dom` dependency. It supports these implicit role mappings:

@@ -36,18 +36,23 @@
 	"license": "MIT",
 	"peerDependencies": {
 		"@playwright/test": ">=1",
+		"@testing-library/dom": ">=9",
 		"@testing-library/react": ">=14"
 	},
 	"peerDependenciesMeta": {
-		"@testing-library/react": {
+		"@playwright/test": {
 			"optional": true
 		},
-		"@playwright/test": {
+		"@testing-library/dom": {
+			"optional": true
+		},
+		"@testing-library/react": {
 			"optional": true
 		}
 	},
 	"devDependencies": {
 		"@tanstack/intent": "0.0.41",
+		"@testing-library/dom": "^10.0.0",
 		"@testing-library/jest-dom": "^6.0.0",
 		"jsdom": "^26.0.0",
 		"typescript": "^5.7.0",

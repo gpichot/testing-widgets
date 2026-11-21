@@ -35,10 +35,12 @@ describe("ContactForm (vitest + RTL)", () => {
 
 		await actions.submitForm("Alice", "Hello!");
 
-		expect(elements.thankYou("Alice").get()).toHaveTextContent(
+		// The confirmation renders asynchronously: find() waits for it
+		// (like RTL findBy*), while Playwright auto-waits natively.
+		expect(await elements.thankYou("Alice").find()).toHaveTextContent(
 			"Thank you, Alice!",
 		);
-		expect(elements.confirmation()).toHaveTextContent(
+		expect(await elements.confirmation.find()).toHaveTextContent(
 			"Your message has been sent.",
 		);
 	});

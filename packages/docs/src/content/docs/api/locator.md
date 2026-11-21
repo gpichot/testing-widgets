@@ -31,8 +31,11 @@ locator.getByTestId("hero")
 | `getAll()` | element[] | yes (if none) |
 | `query()` | element \| null | no |
 | `queryAll()` | element[] | no |
-| `find()` | Promise\<element\> | yes (async) |
+| `find(options?)` | Promise\<element\> | rejects if none or more than one match after the timeout |
+| `findAll(options?)` | Promise\<element[]\> | rejects if none match after the timeout |
 | `()` | element | yes (same as `get()`) |
+
+`find()` / `findAll()` mirror RTL's `findBy*` / `findAllBy*`. `options` is `{ timeout?: number; interval?: number }` (defaults: 1000ms / 50ms). In the Playwright adapter, `find()` returns the (lazy, auto-waiting) locator and `findAll()` returns `locator.all()`.
 
 ## Actions
 

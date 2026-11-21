@@ -28,8 +28,20 @@ the widget being wired here.
 # testing-widgets — Wire RTL
 
 The `rtl` adapter connects a widget to a vitest + `@testing-library/react`
-test. It ships its own DOM query engine — no `@testing-library/dom`
-dependency.
+test. It ships its own DOM query engine. `@testing-library/dom` is only used
+(optionally) for `find()`/`findAll()` waiting.
+
+## Async UI
+
+`get()`, `()` and actions resolve synchronously, like RTL `getBy*`. For
+elements that render after an async update, use `find()` — same semantics
+as `findBy*` (exactly one match, 1000ms default timeout, rejects on none or
+multiple). `findAll()` mirrors `findAllBy*`.
+
+```ts
+await actions.submitForm("Alice", "Hello!");
+expect(await elements.thankYou("Alice").find()).toHaveTextContent("Thank you, Alice!");
+```
 
 ## Setup
 
@@ -52,8 +64,8 @@ describe("ContactForm", () => {
   it("submits and shows confirmation", async () => {
     const { elements, actions } = setup();
     await actions.submitForm("Alice", "Hello!");
-    expect(elements.thankYou("Alice").get()).toHaveTextContent("Thank you, Alice!");
-    expect(elements.confirmation()).toHaveTextContent("Your message has been sent.");
+    expect(await elements.thankYou("Alice").find()).toHaveTextContent("Thank you, Alice!");
+    expect(await elements.confirmation.find()).toHaveTextContent("Your message has been sent.");
   });
 });
 ```
