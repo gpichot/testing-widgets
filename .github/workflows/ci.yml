@@ -22,7 +22,8 @@ jobs:
       - run: pnpm test
 
   e2e:
-    runs-on: ubuntu-latest
+    # Playwright doesn't support ubuntu 26.04 (current ubuntu-latest) yet
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
